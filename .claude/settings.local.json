@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:apps.apple.com)",
+      "WebFetch(domain:chromewebstore.google.com)",
+      "WebSearch",
+      "WebFetch(domain:chrome-stats.com)",
+      "WebFetch(domain:chrome.google.com)",
+      "WebFetch(domain:streamlive.fadme.dev)",
+      "Bash(node --check background.js)",
+      "Bash(node --check popup.js)",
+      "Bash(node --check options.js)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
+    ]
+  }
+}

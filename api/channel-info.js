@@ -1,0 +1,92 @@
+// GET /api/channel-info?platform=youtube&q=@handle
+// GET /api/channel-info?platform=twitch&q=username
+// Returns: { channelId, name, thumbnail }
+
+let twitchTokenCache = null;
+
+module.exports = async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  if (req.method === 'OPTIONS') return res.status(200).end();
+
+  const { platform, q } = req.query;
+  if (!q) return res.status(400).json({ error: 'q is required' });
+
+  try {
+    let info;
+    if (platform === 'youtube')     info = await lookupYouTube(q);
+    else if (platform === 'twitch') info = await lookupTwitch(q);
+    else return res.status(400).json({ error: 'Invalid platform' });
+
+    res.json(info);
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+};
+
+async function lookupYouTube(input) {
+  const key = process.env.YOUTUBE_API_KEY;
+  let param;
+
+  const handleMatch = input.match(/@([\w.-]+)/);
+  if (handleMatch) {
+    param = `forHandle=%40${handleMatch[1]}`;
+  } else {
+    const idMatch = input.match(/(UC[\w-]{22})/);
+    if (idMatch) param = `id=${idMatch[1]}`;
+    else throw new Error('YouTubeのURL（@ハンドルまたはチャンネルID）を入力してください');
+  }
+
+  const res = await fetch(
+    `https://www.googleapis.com/youtube/v3/channels?part=snippet&${param}&key=${key}`
+  );
+  const data = await res.json();
+
+  if (data.error) throw new Error(`YouTube APIエラー: ${data.error.message}`);
+  if (!data.items?.length) throw new Error('チャンネルが見つかりませんでした');
+
+  const ch = data.items[0];
+  return {
+    channelId: ch.id,
+    name: ch.snippet.title,
+    thumbnail: ch.snippet.thumbnails.default?.url || ''
+  };
+}
+
+async function lookupTwitch(input) {
+  const login = input.replace(/^https?:\/\/(?:www\.)?twitch\.tv\//, '').replace(/\/$/, '');
+  const token = await getTwitchToken();
+
+  const res = await fetch(`https://api.twitch.tv/helix/users?login=${encodeURIComponent(login)}`, {
+    headers: {
+      'Client-Id': process.env.TWITCH_CLIENT_ID,
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  const data = await res.json();
+
+  if (!data.data?.length) throw new Error('Twitchユーザーが見つかりませんでした');
+
+  const u = data.data[0];
+  return {
+    channelId: u.login,
+    name: u.display_name,
+    thumbnail: u.profile_image_url
+  };
+}
+
+async function getTwitchToken() {
+  if (twitchTokenCache?.expiresAt > Date.now() + 60_000) return twitchTokenCache.access_token;
+
+  const res = await fetch('https://id.twitch.tv/oauth2/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: process.env.TWITCH_CLIENT_ID,
+      client_secret: process.env.TWITCH_CLIENT_SECRET,
+      grant_type: 'client_credentials'
+    })
+  });
+  const data = await res.json();
+  twitchTokenCache = { access_token: data.access_token, expiresAt: Date.now() + data.expires_in * 1000 };
+  return data.access_token;
+}

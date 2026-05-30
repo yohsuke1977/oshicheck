@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>推し通知 設定</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="container">
+    <h1 class="logo">推し通知</h1>
+
+    <!-- チャンネル追加 -->
+    <section class="card">
+      <h2>チャンネルを追加</h2>
+
+      <div class="field">
+        <label>プラットフォーム</label>
+        <div class="radio-group">
+          <label class="radio">
+            <input type="radio" name="platform" value="youtube" checked>
+            <span>YouTube</span>
+          </label>
+          <label class="radio">
+            <input type="radio" name="platform" value="twitch">
+            <span>Twitch</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label id="inputLabel">YouTubeチャンネルURL / @ハンドル</label>
+        <input type="text" id="channelInput" placeholder="https://www.youtube.com/@... または UCxxxx">
+      </div>
+
+      <button class="btn-primary" id="addBtn">チャンネルを追加</button>
+      <div class="add-status" id="addStatus"></div>
+
+      <div class="preview" id="preview" style="display:none">
+        <img id="previewThumb" src="" alt="">
+        <div>
+          <div id="previewName" class="preview-name"></div>
+          <div id="previewPlatform" class="preview-platform"></div>
+        </div>
+        <button class="btn-confirm" id="confirmBtn">登録する</button>
+      </div>
+    </section>
+
+    <!-- チャンネル一覧 -->
+    <section class="card">
+      <h2>登録チャンネル</h2>
+      <div id="channelList">
+        <p class="empty">チャンネルが登録されていません</p>
+      </div>
+    </section>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>
