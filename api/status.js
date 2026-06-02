@@ -83,7 +83,11 @@ async function checkTwitch(logins) {
 }
 
 async function checkWhowatch(userPaths) {
-  const result = Object.fromEntries(userPaths.map(p => [p, { isLive: false, liveId: null }]));
+  // URLが混入している場合に備えてパスだけ抽出
+  const cleanPaths = userPaths.map(p =>
+    p.replace(/^https?:\/\/(?:www\.)?whowatch\.tv\/(?:user|profile)\//, '').replace(/\/$/, '')
+  );
+  const result = Object.fromEntries(userPaths.map((p, i) => [p, { isLive: false, liveId: null }]));
   try {
     const res = await fetch('https://api.whowatch.tv/lives', {
       headers: { 'User-Agent': 'Mozilla/5.0' }
@@ -106,10 +110,10 @@ async function checkWhowatch(userPaths) {
       }
     }
 
-    for (const userPath of userPaths) {
-      const info = liveInfoMap.get(userPath);
+    for (let i = 0; i < userPaths.length; i++) {
+      const info = liveInfoMap.get(cleanPaths[i]);
       if (info) {
-        result[userPath] = { isLive: true, ...info };
+        result[userPaths[i]] = { isLive: true, ...info };
       }
     }
   } catch (e) {}

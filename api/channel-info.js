@@ -107,8 +107,9 @@ async function lookupShowroom(input) {
 }
 
 async function lookupWhowatch(input) {
+  // /user/xxx または /profile/xxx 両方に対応
   const userPath = input
-    .replace(/^https?:\/\/(?:www\.)?whowatch\.tv\/user\//, '')
+    .replace(/^https?:\/\/(?:www\.)?whowatch\.tv\/(?:user|profile)\//, '')
     .replace(/\/$/, '');
 
   // ライブ中なら詳細情報を取得
