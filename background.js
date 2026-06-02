@@ -87,11 +87,11 @@ async function checkAllChannels() {
 
 async function sendNotification(channel) {
   sendEvent('live_notify', { platform: channel.platform });
-  const platform = { youtube: 'YouTube', twitch: 'Twitch' }[channel.platform] ?? channel.platform;
+  const platform = { youtube: 'YouTube', twitch: 'Twitch', twitcasting: 'ツイキャス', showroom: 'SHOWROOM' }[channel.platform] ?? channel.platform;
   const url = getStreamUrl(channel);
   chrome.notifications.create(`live-${channel.id}-${Date.now()}`, {
     type: 'basic',
-    iconUrl: channel.thumbnail || 'icons/icon128.png',
+    iconUrl: 'icons/icon128.png',
     title: `${channel.name} が配信中！`,
     message: `${platform} でライブ配信が始まりました`,
     buttons: url ? [{ title: '視聴する' }] : []
