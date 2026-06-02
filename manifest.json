@@ -3,9 +3,19 @@
   "name": "推し通知 - ライバー配信アラート",
   "version": "0.1.0",
   "description": "推しのライバーがYouTube・Twitchなど複数プラットフォームで配信開始したらまとめて通知",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "oshicheck"
+    "default_title": "推し通知 - ライバー配信アラート",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
   },
   "background": {
     "service_worker": "background.js"
