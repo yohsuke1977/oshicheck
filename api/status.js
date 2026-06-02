@@ -93,7 +93,7 @@ async function checkWhowatch(userPaths) {
     // user_path → live entry のマップ（名前・サムネ・liveId取得用）
     const liveInfoMap = new Map();
     for (const cat of data) {
-      for (const key of ['new', 'ranking', 'lives']) {
+      for (const key of ['new', 'popular']) {
         for (const live of cat[key] || []) {
           if (live.user?.user_path) {
             liveInfoMap.set(live.user.user_path, {

@@ -119,7 +119,7 @@ async function lookupWhowatch(input) {
     const data = await res.json();
 
     for (const cat of data) {
-      for (const key of ['new', 'ranking', 'lives']) {
+      for (const key of ['new', 'popular']) {
         for (const live of cat[key] || []) {
           if (live.user?.user_path === userPath) {
             return {
