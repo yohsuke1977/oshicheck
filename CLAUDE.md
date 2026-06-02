@@ -55,12 +55,12 @@ DB・認証:    未実装（将来: Supabase）
 |---|---|---|---|
 | 1 | YouTube Live | 公式（Data API v3） | ✅ MVP実装済み |
 | 2 | Twitch | 公式（Helix API） | ✅ MVP実装済み |
-| 3 | ツイキャス | 公式あり | 未着手 |
-| 4 | SHOWROOM | 非公式・安定 | 未着手 |
-| 5 | ニコニコ生放送 | 公式(一部) | 未着手 |
-| 6 | 17Live | 非公式 | 未着手 |
-| 7 | Pococha | 非公式 | 未着手 |
-| 8 | ふわっち | 非公式 | 未着手 |
+| 3 | ツイキャス | 公式あり | ✅ 実装済み |
+| 4 | SHOWROOM | 非公式・安定 | ✅ 実装済み |
+| 5 | ニコニコ生放送 | 公式(一部) | ✗ API認証必須で実装不可 |
+| 6 | 17Live | 非公式 | ✗ API認証必須（Issue #11）|
+| 7 | Pococha | 非公式 | ✗ API認証必須（Issue #12）|
+| 8 | ふわっち | 非公式 | ✅ 実装済み |
 
 **対象外（当面）**: TikTok Live・Instagram Live → 公式APIなし・ブロック積極的
 
@@ -78,6 +78,15 @@ DB・認証:    未実装（将来: Supabase）
 ---
 
 ## ステータス
-2026年5月 Chrome拡張MVP開発中
-- Vercelバックエンド構築が次のステップ
-- GitHubリポジトリ: https://github.com/yohsuke1977/oshicheck
+2026年6月 Chrome Web Store審査中
+
+**完成済み機能**
+- YouTube / Twitch / ツイキャス / SHOWROOM / ふわっち 対応
+- Firebase認証・Firestoreチャンネル同期
+- フリーミアム（無料5チャンネル・Pro ¥480/月）
+- Stripe決済（テストモード）→ 審査通過後に本番切替（Issue #10）
+- GA4解析（Measurement Protocol）
+- アイコンバッジ表示
+
+**GitHubリポジトリ**: https://github.com/yohsuke1977/oshicheck
+**Vercel**: https://oshicheck.vercel.app
