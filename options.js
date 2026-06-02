@@ -278,8 +278,16 @@ function escHtml(str) {
   return str.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 }
 
-document.getElementById('upgradeBtn')?.addEventListener('click', () => {
+document.getElementById('upgradeBtn')?.addEventListener('click', async () => {
   sendEvent('upgrade_click');
+  const user = await fbGetCurrentUser();
+  if (!user) {
+    alert('Proプランへのアップグレードにはログインが必要です。');
+    return;
+  }
+  const idToken = await fbGetIdToken();
+  const url = `https://oshicheck.vercel.app/api/create-checkout?uid=${user.uid}&token=${encodeURIComponent(idToken)}`;
+  chrome.tabs.create({ url });
 });
 
 init();

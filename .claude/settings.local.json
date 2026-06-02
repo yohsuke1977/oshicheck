@@ -51,7 +51,22 @@
       "Bash(curl -s -A \"Mozilla/5.0\" \"https://www.showroom-live.com/api/room/profile?room_url_key=AngeReve053&access_token=\")",
       "Bash(curl -s -A \"Mozilla/5.0\" \"https://www.showroom-live.com/api/room?room_url_key=AngeReve053\")",
       "Bash(curl -s \"https://oshicheck.vercel.app/api/channel-info?platform=showroom&q=AngeReve053\")",
-      "Bash(curl -s \"https://oshicheck.vercel.app/api/status?showroom=AngeReve053\")"
+      "Bash(curl -s \"https://oshicheck.vercel.app/api/status?showroom=AngeReve053\")",
+      "Bash(curl -s -A Mozilla/5.0 -H 'X-Frontend-Id: 6' https://nvapi.nicovideo.jp/v1/users/9003560)",
+      "Bash(curl -s -A Mozilla/5.0 'https://live2.nicovideo.jp/api/v1/user/programs?providerId=9003560&status=ON_AIR')",
+      "Bash(curl -s -A Mozilla/5.0 'https://live2.nicovideo.jp/api/v1/user/programs?providerIds=9003560&statusIn%5B%5D=ON_AIR')",
+      "Bash(curl -s -A Mozilla/5.0 'https://live2.nicovideo.jp/api/v1/user/programs?providerIds=9003560&status=ON_AIR')",
+      "Bash(curl -s -A \"Mozilla/5.0\" \"https://live2.nicovideo.jp/api/v1/lives?status=ON_AIR&sortOrder=recentDesc&limit=3\")",
+      "Bash(curl -s -A Mozilla/5.0 'https://api.search.nicovideo.jp/api/v2/live/contents/search?q=&filters%5Bstatus%5D%5B0%5D=onair&_limit=3&_sort=-startTime&_context=oshicheck')",
+      "Bash(curl -sv -A Mozilla/5.0 'https://api.search.nicovideo.jp/api/v2/live/contents/search?q=&filters%5Bstatus%5D%5B0%5D=onair&_limit=3&_sort=-startTime&_context=oshicheck')",
+      "Bash(curl -s \"https://snapshot.search.nicovideo.jp/api/v2/snapshot/video/contents/search?q=&targets=title&fields=contentId,userId&filters[liveStatus][0]=onair&_limit=3&_context=oshicheck\")",
+      "Bash(curl -s -A \"Mozilla/5.0\" \"https://live2.nicovideo.jp/api/v1/user/programs?providerType=user&providerId=9003560\")",
+      "Bash(curl -s -A \"Mozilla/5.0\" \"https://live2.nicovideo.jp/api/v1/channel/programs?providerType=user&providerId=9003560\")",
+      "Bash(curl -s -A \"Mozilla/5.0\" \"https://www.nicovideo.jp/user/9003560\")",
+      "Bash(curl -s -A \"Mozilla/5.0\" \"https://live2.nicovideo.jp/api/v1/lives?status=onair&userId=9003560\")",
+      "Bash(curl -s \"https://snapshot.search.nicovideo.jp/api/v2/snapshot/video/contents/search?q=user%3A9003560&targets=tags&fields=contentId,userId,channelId,liveStatus&filters%5BliveStatus%5D%5B0%5D=onair&_limit=3&_context=oshicheck\")",
+      "Bash(curl -s -A \"Mozilla/5.0\" \"https://live.nicovideo.jp/rss/user?userId=9003560\")",
+      "Bash(npm install *)"
     ]
   }
 }
