@@ -207,6 +207,23 @@ input::placeholder { color: #3d3d50; }
 .ch-platform.twitcasting { background: #0e2e1e; color: #1abf75; }
 .ch-platform.showroom { background: #2e0e1a; color: #ff4569; }
 
+.feedback-card { text-align: center; }
+
+.btn-feedback {
+  display: inline-block;
+  margin-top: 4px;
+  background: #18181b;
+  border: 1px solid #26262c;
+  color: #adadb8;
+  padding: 9px 24px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-feedback:hover { background: #26262c; color: #efeff1; }
+
 .btn-remove {
   background: none;
   border: none;
