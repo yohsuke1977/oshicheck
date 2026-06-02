@@ -66,7 +66,13 @@ async function checkAllChannels() {
         if (s) { ch.isLive = s.isLive; ch.lastChecked = Date.now(); }
       } else if (ch.platform === 'whowatch') {
         const s = data.whowatch?.[ch.channelId];
-        if (s) { ch.isLive = s.isLive; ch.liveId = s.liveId; ch.lastChecked = Date.now(); }
+        if (s) {
+          ch.isLive = s.isLive;
+          ch.liveId = s.liveId;
+          ch.lastChecked = Date.now();
+          if (s.name && s.name !== ch.channelId) ch.name = s.name;
+          if (s.thumbnail) ch.thumbnail = s.thumbnail;
+        }
       }
     }
   } catch (e) {

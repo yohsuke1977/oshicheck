@@ -90,19 +90,27 @@ async function checkWhowatch(userPaths) {
     });
     const data = await res.json();
 
-    // 全カテゴリのライブ一覧からuser_path → live_idのマップを作成
-    const liveMap = new Map();
+    // user_path → live entry のマップ（名前・サムネ・liveId取得用）
+    const liveInfoMap = new Map();
     for (const cat of data) {
       for (const key of ['new', 'ranking', 'lives']) {
         for (const live of cat[key] || []) {
-          if (live.user?.user_path) liveMap.set(live.user.user_path, live.id);
+          if (live.user?.user_path) {
+            liveInfoMap.set(live.user.user_path, {
+              liveId: live.id,
+              name: live.user.name,
+              thumbnail: live.user.icon_url || ''
+            });
+          }
         }
       }
     }
 
     for (const userPath of userPaths) {
-      const liveId = liveMap.get(userPath);
-      if (liveId) result[userPath] = { isLive: true, liveId };
+      const info = liveInfoMap.get(userPath);
+      if (info) {
+        result[userPath] = { isLive: true, ...info };
+      }
     }
   } catch (e) {}
   return result;
