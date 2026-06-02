@@ -1,4 +1,4 @@
-// GET /api/status?youtube=UCxxx,UCyyy&twitch=user1,user2
+// GET /api/status?youtube=UCxxx,UCyyy&twitch=user1,user2&twitcasting=user1,user2
 // Returns live status for each channel. Cached 60s on CDN.
 
 let twitchTokenCache = null;
@@ -7,12 +7,13 @@ module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const { youtube, twitch } = req.query;
+  const { youtube, twitch, twitcasting } = req.query;
   const result = {};
 
   try {
-    if (youtube) result.youtube = await checkYouTube(youtube.split(',').filter(Boolean));
-    if (twitch)  result.twitch  = await checkTwitch(twitch.split(',').filter(Boolean));
+    if (youtube)      result.youtube      = await checkYouTube(youtube.split(',').filter(Boolean));
+    if (twitch)       result.twitch       = await checkTwitch(twitch.split(',').filter(Boolean));
+    if (twitcasting)  result.twitcasting  = await checkTwitcasting(twitcasting.split(',').filter(Boolean));
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: e.message });
@@ -77,6 +78,33 @@ async function checkTwitch(logins) {
 
   const liveSet = new Set((data.data || []).map(s => s.user_login.toLowerCase()));
   return Object.fromEntries(logins.map(l => [l, { isLive: liveSet.has(l.toLowerCase()) }]));
+}
+
+async function checkTwitcasting(userIds) {
+  const auth = Buffer.from(
+    `${process.env.TWITCASTING_CLIENT_ID}:${process.env.TWITCASTING_CLIENT_SECRET}`
+  ).toString('base64');
+
+  const result = {};
+  for (const userId of userIds) {
+    try {
+      const res = await fetch(`https://apiv2.twitcasting.tv/users/${encodeURIComponent(userId)}`, {
+        headers: {
+          'Authorization': `Basic ${auth}`,
+          'X-Api-Version': '2.0',
+          'Accept': 'application/json'
+        }
+      });
+      const data = await res.json();
+      result[userId] = {
+        isLive: data.user?.is_live ?? false,
+        movieId: data.user?.last_movie_id ?? null
+      };
+    } catch (e) {
+      result[userId] = { isLive: false, movieId: null };
+    }
+  }
+  return result;
 }
 
 async function getTwitchToken() {

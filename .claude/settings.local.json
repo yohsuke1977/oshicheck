@@ -12,7 +12,18 @@
       "Bash(node --check options.js)",
       "Bash(git init *)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(gh repo *)",
+      "Bash(gh issue *)",
+      "Bash(gh issue create --title 'Chrome Web Store 公開申請' --body '## チェックリスト *)",
+      "Bash(vercel --version)",
+      "Bash(vercel link *)",
+      "Bash(vercel env *)",
+      "Bash(vercel --prod)",
+      "Bash(curl -s \"https://oshicheck.vercel.app/api/status?twitch=ninja\")",
+      "Bash(python3 -m json.tool)",
+      "Bash(vercel logs *)",
+      "Bash(curl -s \"https://oshicheck.vercel.app/api/channel-info?platform=twitcasting&q=twitcasting_jp\")"
     ]
   }
 }

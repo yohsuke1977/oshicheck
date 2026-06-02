@@ -30,13 +30,15 @@ async function checkAllChannels() {
   const prev = Object.fromEntries(channels.map(ch => [ch.id, ch.isLive]));
   const updated = JSON.parse(JSON.stringify(channels));
 
-  const youtubeIds = channels.filter(ch => ch.platform === 'youtube').map(ch => ch.channelId);
-  const twitchLogins = channels.filter(ch => ch.platform === 'twitch').map(ch => ch.channelId);
+  const youtubeIds      = channels.filter(ch => ch.platform === 'youtube').map(ch => ch.channelId);
+  const twitchLogins    = channels.filter(ch => ch.platform === 'twitch').map(ch => ch.channelId);
+  const twitcastingIds  = channels.filter(ch => ch.platform === 'twitcasting').map(ch => ch.channelId);
 
   try {
     const params = new URLSearchParams();
-    if (youtubeIds.length) params.set('youtube', youtubeIds.join(','));
-    if (twitchLogins.length) params.set('twitch', twitchLogins.join(','));
+    if (youtubeIds.length)     params.set('youtube', youtubeIds.join(','));
+    if (twitchLogins.length)   params.set('twitch', twitchLogins.join(','));
+    if (twitcastingIds.length) params.set('twitcasting', twitcastingIds.join(','));
 
     const res = await fetch(`${API_BASE}/api/status?${params}`);
     if (!res.ok) throw new Error(`API error: ${res.status}`);
@@ -49,6 +51,9 @@ async function checkAllChannels() {
       } else if (ch.platform === 'twitch') {
         const s = data.twitch?.[ch.channelId];
         if (s) { ch.isLive = s.isLive; ch.lastChecked = Date.now(); }
+      } else if (ch.platform === 'twitcasting') {
+        const s = data.twitcasting?.[ch.channelId];
+        if (s) { ch.isLive = s.isLive; ch.movieId = s.movieId; ch.lastChecked = Date.now(); }
       }
     }
   } catch (e) {
@@ -81,6 +86,10 @@ function getStreamUrl(channel) {
   }
   if (channel.platform === 'twitch') {
     return `https://www.twitch.tv/${channel.channelId}`;
+  }
+  if (channel.platform === 'twitcasting') {
+    if (channel.movieId) return `https://twitcasting.tv/${channel.channelId}/movie/${channel.movieId}`;
+    return `https://twitcasting.tv/${channel.channelId}`;
   }
   return null;
 }

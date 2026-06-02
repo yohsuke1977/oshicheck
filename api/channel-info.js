@@ -1,5 +1,6 @@
 // GET /api/channel-info?platform=youtube&q=@handle
 // GET /api/channel-info?platform=twitch&q=username
+// GET /api/channel-info?platform=twitcasting&q=username
 // Returns: { channelId, name, thumbnail }
 
 let twitchTokenCache = null;
@@ -13,8 +14,9 @@ module.exports = async function handler(req, res) {
 
   try {
     let info;
-    if (platform === 'youtube')     info = await lookupYouTube(q);
-    else if (platform === 'twitch') info = await lookupTwitch(q);
+    if (platform === 'youtube')           info = await lookupYouTube(q);
+    else if (platform === 'twitch')       info = await lookupTwitch(q);
+    else if (platform === 'twitcasting')  info = await lookupTwitcasting(q);
     else return res.status(400).json({ error: 'Invalid platform' });
 
     res.json(info);
@@ -71,6 +73,29 @@ async function lookupTwitch(input) {
     channelId: u.login,
     name: u.display_name,
     thumbnail: u.profile_image_url
+  };
+}
+
+async function lookupTwitcasting(input) {
+  const userId = input.replace(/^https?:\/\/(?:www\.)?twitcasting\.tv\//, '').replace(/\/$/, '');
+  const auth = Buffer.from(
+    `${process.env.TWITCASTING_CLIENT_ID}:${process.env.TWITCASTING_CLIENT_SECRET}`
+  ).toString('base64');
+
+  const res = await fetch(`https://apiv2.twitcasting.tv/users/${encodeURIComponent(userId)}`, {
+    headers: {
+      'Authorization': `Basic ${auth}`,
+      'X-Api-Version': '2.0',
+      'Accept': 'application/json'
+    }
+  });
+  const data = await res.json();
+  if (!data.user) throw new Error('ユーザーが見つかりませんでした');
+
+  return {
+    channelId: data.user.screen_id,
+    name: data.user.name,
+    thumbnail: data.user.image
   };
 }
 

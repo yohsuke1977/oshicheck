@@ -1,5 +1,5 @@
 const API_BASE = 'https://oshicheck.vercel.app';
-const PLATFORM_LABEL = { youtube: 'YouTube', twitch: 'Twitch' };
+const PLATFORM_LABEL = { youtube: 'YouTube', twitch: 'Twitch', twitcasting: 'ツイキャス' };
 
 let pendingChannel = null;
 
@@ -19,9 +19,12 @@ function setupPlatformSwitch() {
       if (r.value === 'youtube') {
         label.textContent = 'YouTubeチャンネルURL / @ハンドル';
         input.placeholder = 'https://www.youtube.com/@... または UCxxxx';
-      } else {
+      } else if (r.value === 'twitch') {
         label.textContent = 'Twitchユーザー名';
         input.placeholder = 'username';
+      } else {
+        label.textContent = 'ツイキャスURL / ユーザーID';
+        input.placeholder = 'https://twitcasting.tv/... または username';
       }
       hidePreview();
       clearStatus();

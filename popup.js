@@ -1,4 +1,4 @@
-const PLATFORM_LABEL = { youtube: 'YouTube', twitch: 'Twitch' };
+const PLATFORM_LABEL = { youtube: 'YouTube', twitch: 'Twitch', twitcasting: 'ツイキャス' };
 
 document.getElementById('settingsBtn').addEventListener('click', () => {
   chrome.runtime.openOptionsPage();
@@ -87,6 +87,10 @@ function getStreamUrl(channel) {
   }
   if (channel.platform === 'twitch') {
     return `https://www.twitch.tv/${channel.channelId}`;
+  }
+  if (channel.platform === 'twitcasting') {
+    if (channel.movieId) return `https://twitcasting.tv/${channel.channelId}/movie/${channel.movieId}`;
+    return `https://twitcasting.tv/${channel.channelId}`;
   }
   return null;
 }

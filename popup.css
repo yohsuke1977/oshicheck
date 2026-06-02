@@ -98,6 +98,7 @@ body {
 
 .platform-tag.youtube { color: #ff4444; }
 .platform-tag.twitch { color: #9147ff; }
+.platform-tag.twitcasting { color: #1abf75; }
 
 .status {
   display: flex;
