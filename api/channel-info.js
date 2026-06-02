@@ -1,6 +1,7 @@
 // GET /api/channel-info?platform=youtube&q=@handle
 // GET /api/channel-info?platform=twitch&q=username
 // GET /api/channel-info?platform=twitcasting&q=username
+// GET /api/channel-info?platform=showroom&q=room_url_key or URL
 // Returns: { channelId, name, thumbnail }
 
 let twitchTokenCache = null;
@@ -17,6 +18,7 @@ module.exports = async function handler(req, res) {
     if (platform === 'youtube')           info = await lookupYouTube(q);
     else if (platform === 'twitch')       info = await lookupTwitch(q);
     else if (platform === 'twitcasting')  info = await lookupTwitcasting(q);
+    else if (platform === 'showroom')     info = await lookupShowroom(q);
     else return res.status(400).json({ error: 'Invalid platform' });
 
     res.json(info);
@@ -73,6 +75,33 @@ async function lookupTwitch(input) {
     channelId: u.login,
     name: u.display_name,
     thumbnail: u.profile_image_url
+  };
+}
+
+async function lookupShowroom(input) {
+  const key = input
+    .replace(/^https?:\/\/(?:www\.)?showroom-live\.com\/(?:r\/)?/, '')
+    .replace(/\/$/, '');
+
+  // OGPタグからルーム名・画像を取得（未認証でも動作）
+  const pageRes = await fetch(`https://www.showroom-live.com/r/${key}`, {
+    headers: { 'User-Agent': 'Mozilla/5.0' }
+  });
+  if (!pageRes.ok) throw new Error('ルームが見つかりませんでした');
+
+  const html = await pageRes.text();
+
+  const titleMatch = html.match(/<meta property="og:title" content="([^"]+)"/);
+  const imageMatch = html.match(/<meta property="og:image" content="([^"]+)"/);
+
+  if (!titleMatch) throw new Error('ルーム情報を取得できませんでした');
+
+  const rawName = titleMatch[1].replace(/｜SHOWROOM.*$/, '').trim();
+
+  return {
+    channelId: key,
+    name: rawName,
+    thumbnail: imageMatch ? imageMatch[1] : ''
   };
 }
 

@@ -1,4 +1,4 @@
-// GET /api/status?youtube=UCxxx,UCyyy&twitch=user1,user2&twitcasting=user1,user2
+// GET /api/status?youtube=UCxxx,UCyyy&twitch=user1,user2&twitcasting=user1,user2&showroom=key1,key2
 // Returns live status for each channel. Cached 60s on CDN.
 
 let twitchTokenCache = null;
@@ -7,13 +7,14 @@ module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const { youtube, twitch, twitcasting } = req.query;
+  const { youtube, twitch, twitcasting, showroom } = req.query;
   const result = {};
 
   try {
     if (youtube)      result.youtube      = await checkYouTube(youtube.split(',').filter(Boolean));
     if (twitch)       result.twitch       = await checkTwitch(twitch.split(',').filter(Boolean));
     if (twitcasting)  result.twitcasting  = await checkTwitcasting(twitcasting.split(',').filter(Boolean));
+    if (showroom)     result.showroom     = await checkShowroom(showroom.split(',').filter(Boolean));
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: e.message });
@@ -78,6 +79,30 @@ async function checkTwitch(logins) {
 
   const liveSet = new Set((data.data || []).map(s => s.user_login.toLowerCase()));
   return Object.fromEntries(logins.map(l => [l, { isLive: liveSet.has(l.toLowerCase()) }]));
+}
+
+async function checkShowroom(roomUrlKeys) {
+  const result = Object.fromEntries(roomUrlKeys.map(k => [k, { isLive: false }]));
+  try {
+    const res = await fetch('https://www.showroom-live.com/api/live/onlives', {
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    });
+    const data = await res.json();
+
+    const liveSet = new Set();
+    for (const genre of data.onlives || []) {
+      for (const live of genre.lives || []) {
+        if (live.room_url_key) liveSet.add(live.room_url_key);
+      }
+    }
+
+    for (const key of roomUrlKeys) {
+      result[key] = { isLive: liveSet.has(key) };
+    }
+  } catch (e) {
+    // Return all offline on error
+  }
+  return result;
 }
 
 async function checkTwitcasting(userIds) {

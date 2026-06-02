@@ -36,12 +36,14 @@ async function checkAllChannels() {
   const youtubeIds      = channels.filter(ch => ch.platform === 'youtube').map(ch => ch.channelId);
   const twitchLogins    = channels.filter(ch => ch.platform === 'twitch').map(ch => ch.channelId);
   const twitcastingIds  = channels.filter(ch => ch.platform === 'twitcasting').map(ch => ch.channelId);
+  const showroomKeys    = channels.filter(ch => ch.platform === 'showroom').map(ch => ch.channelId);
 
   try {
     const params = new URLSearchParams();
     if (youtubeIds.length)     params.set('youtube', youtubeIds.join(','));
     if (twitchLogins.length)   params.set('twitch', twitchLogins.join(','));
     if (twitcastingIds.length) params.set('twitcasting', twitcastingIds.join(','));
+    if (showroomKeys.length)   params.set('showroom', showroomKeys.join(','));
 
     const res = await fetch(`${API_BASE}/api/status?${params}`);
     if (!res.ok) throw new Error(`API error: ${res.status}`);
@@ -57,6 +59,9 @@ async function checkAllChannels() {
       } else if (ch.platform === 'twitcasting') {
         const s = data.twitcasting?.[ch.channelId];
         if (s) { ch.isLive = s.isLive; ch.movieId = s.movieId; ch.lastChecked = Date.now(); }
+      } else if (ch.platform === 'showroom') {
+        const s = data.showroom?.[ch.channelId];
+        if (s) { ch.isLive = s.isLive; ch.lastChecked = Date.now(); }
       }
     }
   } catch (e) {
@@ -94,6 +99,9 @@ function getStreamUrl(channel) {
   if (channel.platform === 'twitcasting') {
     if (channel.movieId) return `https://twitcasting.tv/${channel.channelId}/movie/${channel.movieId}`;
     return `https://twitcasting.tv/${channel.channelId}`;
+  }
+  if (channel.platform === 'showroom') {
+    return `https://www.showroom-live.com/${channel.channelId}`;
   }
   return null;
 }

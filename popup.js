@@ -1,4 +1,4 @@
-const PLATFORM_LABEL = { youtube: 'YouTube', twitch: 'Twitch', twitcasting: 'ツイキャス' };
+const PLATFORM_LABEL = { youtube: 'YouTube', twitch: 'Twitch', twitcasting: 'ツイキャス', showroom: 'SHOWROOM' };
 
 document.getElementById('settingsBtn').addEventListener('click', () => {
   chrome.runtime.openOptionsPage();
@@ -91,6 +91,9 @@ function getStreamUrl(channel) {
   if (channel.platform === 'twitcasting') {
     if (channel.movieId) return `https://twitcasting.tv/${channel.channelId}/movie/${channel.movieId}`;
     return `https://twitcasting.tv/${channel.channelId}`;
+  }
+  if (channel.platform === 'showroom') {
+    return `https://www.showroom-live.com/${channel.channelId}`;
   }
   return null;
 }

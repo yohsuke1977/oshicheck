@@ -1,5 +1,5 @@
 const API_BASE = 'https://oshicheck.vercel.app';
-const PLATFORM_LABEL = { youtube: 'YouTube', twitch: 'Twitch', twitcasting: 'ツイキャス' };
+const PLATFORM_LABEL = { youtube: 'YouTube', twitch: 'Twitch', twitcasting: 'ツイキャス', showroom: 'SHOWROOM' };
 const FREE_LIMIT = 5;
 
 let pendingChannel = null;
@@ -23,9 +23,12 @@ function setupPlatformSwitch() {
       } else if (r.value === 'twitch') {
         label.textContent = 'Twitchユーザー名';
         input.placeholder = 'username';
-      } else {
+      } else if (r.value === 'twitcasting') {
         label.textContent = 'ツイキャスURL / ユーザーID';
         input.placeholder = 'https://twitcasting.tv/... または username';
+      } else {
+        label.textContent = 'SHOWROOMルームURL / ルームキー';
+        input.placeholder = 'https://www.showroom-live.com/... または room_url_key';
       }
       hidePreview();
       clearStatus();

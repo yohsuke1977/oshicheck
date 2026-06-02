@@ -205,6 +205,7 @@ input::placeholder { color: #3d3d50; }
 .ch-platform.youtube { background: #3a1515; color: #ff4444; }
 .ch-platform.twitch { background: #2a1a4a; color: #9147ff; }
 .ch-platform.twitcasting { background: #0e2e1e; color: #1abf75; }
+.ch-platform.showroom { background: #2e0e1a; color: #ff4569; }
 
 .btn-remove {
   background: none;
