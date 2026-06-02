@@ -207,6 +207,57 @@ input::placeholder { color: #3d3d50; }
 .ch-platform.twitcasting { background: #0e2e1e; color: #1abf75; }
 .ch-platform.showroom { background: #2e0e1a; color: #ff4569; }
 
+/* Auth */
+.auth-buttons { display: flex; gap: 8px; margin-top: 4px; }
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid #9147ff;
+  color: #9147ff;
+  padding: 9px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.15s;
+}
+.btn-secondary:hover { background: #9147ff22; }
+
+.auth-msg { margin-top: 10px; font-size: 12px; min-height: 18px; }
+.auth-msg.error { color: #ff4444; }
+.auth-msg.success { color: #1abf75; }
+
+.signed-in-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.signed-in-email { font-size: 13px; font-weight: 600; color: #efeff1; }
+
+.signed-in-plan {
+  font-size: 11px;
+  margin-top: 4px;
+  color: #6e6e8a;
+  font-weight: 600;
+}
+.signed-in-plan.pro { color: #bf94ff; }
+
+.btn-signout {
+  background: none;
+  border: 1px solid #26262c;
+  color: #6e6e8a;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+.btn-signout:hover { color: #ff4444; border-color: #ff4444; }
+
 .feedback-card { text-align: center; }
 
 .btn-feedback {

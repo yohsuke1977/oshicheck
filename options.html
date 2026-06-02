@@ -54,6 +54,36 @@
       </div>
     </section>
 
+    <!-- 認証 -->
+    <section class="card">
+      <div id="authSignedOut">
+        <h2>ログイン</h2>
+        <p class="hint">ログインするとチャンネルを複数デバイスで同期できます</p>
+        <div class="field">
+          <label>メールアドレス</label>
+          <input type="email" id="authEmail" placeholder="your@email.com" autocomplete="email">
+        </div>
+        <div class="field">
+          <label>パスワード（6文字以上）</label>
+          <input type="password" id="authPassword" placeholder="password" autocomplete="current-password">
+        </div>
+        <div class="auth-buttons">
+          <button class="btn-primary" id="signInBtn">ログイン</button>
+          <button class="btn-secondary" id="signUpBtn">新規登録</button>
+        </div>
+        <div class="auth-msg" id="authMsg"></div>
+      </div>
+      <div id="authSignedIn" style="display:none">
+        <div class="signed-in-row">
+          <div>
+            <div class="signed-in-email" id="signedInEmail"></div>
+            <div class="signed-in-plan" id="signedInPlan"></div>
+          </div>
+          <button class="btn-signout" id="signOutBtn">ログアウト</button>
+        </div>
+      </div>
+    </section>
+
     <!-- フィードバック -->
     <section class="card feedback-card">
       <h2>フィードバック</h2>
@@ -86,6 +116,7 @@
   </div>
 
   <script src="analytics.js"></script>
+  <script src="firebase.js"></script>
   <script src="options.js"></script>
 </body>
 </html>

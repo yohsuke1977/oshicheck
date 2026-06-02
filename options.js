@@ -2,12 +2,107 @@ const API_BASE = 'https://oshicheck.vercel.app';
 const PLATFORM_LABEL = { youtube: 'YouTube', twitch: 'Twitch', twitcasting: 'ツイキャス', showroom: 'SHOWROOM' };
 const FREE_LIMIT = 5;
 
+async function getChannelLimit() {
+  const { plan } = await chrome.storage.local.get('plan');
+  return plan === 'pro' ? 999 : FREE_LIMIT;
+}
+
 let pendingChannel = null;
 
 async function init() {
   const { channels = [] } = await chrome.storage.local.get('channels');
   renderChannelList(channels);
   setupPlatformSwitch();
+  await initAuth();
+}
+
+// ── 認証 ──────────────────────────────────────────────────────────────────────
+
+async function initAuth() {
+  const user = await fbGetCurrentUser();
+  if (user) {
+    await showSignedIn(user);
+  } else {
+    showSignedOut();
+  }
+}
+
+function showSignedOut() {
+  document.getElementById('authSignedOut').style.display = '';
+  document.getElementById('authSignedIn').style.display = 'none';
+}
+
+async function showSignedIn(user) {
+  document.getElementById('authSignedOut').style.display = 'none';
+  document.getElementById('authSignedIn').style.display = '';
+  document.getElementById('signedInEmail').textContent = user.email;
+
+  const { plan } = await chrome.storage.local.get('plan');
+  const planEl = document.getElementById('signedInPlan');
+  if (plan === 'pro') {
+    planEl.textContent = 'Pro プラン';
+    planEl.className = 'signed-in-plan pro';
+  } else {
+    planEl.textContent = '無料プラン';
+    planEl.className = 'signed-in-plan';
+  }
+
+  // チャンネルリストを再描画（プラン反映）
+  const { channels = [] } = await chrome.storage.local.get('channels');
+  renderChannelList(channels);
+}
+
+async function handleAuth(isSignUp) {
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  if (!email || !password) return setAuthMsg('メールアドレスとパスワードを入力してください', 'error');
+
+  setAuthMsg('処理中...', '');
+  try {
+    const user = isSignUp ? await fbSignUp(email, password) : await fbSignIn(email, password);
+
+    // Firestoreからプラン取得
+    const plan = await fsGetPlan(user.localId);
+    await chrome.storage.local.set({ plan });
+
+    // チャンネル同期（Firestore → local）
+    await syncFromFirestore(user.localId);
+
+    await showSignedIn({ email: user.email });
+    sendEvent(isSignUp ? 'sign_up' : 'sign_in');
+  } catch (e) {
+    setAuthMsg(e.message, 'error');
+  }
+}
+
+async function syncFromFirestore(uid) {
+  const remoteChannels = await fsGetChannels(uid);
+  if (!remoteChannels.length) {
+    // ローカルのチャンネルをFirestoreにアップロード
+    const { channels = [] } = await chrome.storage.local.get('channels');
+    for (const ch of channels) await fsSaveChannel(uid, ch);
+    return;
+  }
+  // Firestoreのデータをローカルに反映
+  await chrome.storage.local.set({ channels: remoteChannels });
+  const { channels = [] } = await chrome.storage.local.get('channels');
+  renderChannelList(channels);
+}
+
+document.getElementById('signInBtn').addEventListener('click', () => handleAuth(false));
+document.getElementById('signUpBtn').addEventListener('click', () => handleAuth(true));
+
+document.getElementById('signOutBtn').addEventListener('click', async () => {
+  await fbSignOut();
+  await chrome.storage.local.remove('plan');
+  showSignedOut();
+  sendEvent('sign_out');
+});
+
+function setAuthMsg(msg, type) {
+  const el = document.getElementById('authMsg');
+  el.textContent = msg;
+  el.className = 'auth-msg' + (type ? ` ${type}` : '');
 }
 
 // ── Platform switch ───────────────────────────────────────────────────────────
@@ -64,8 +159,9 @@ document.getElementById('confirmBtn').addEventListener('click', async () => {
   if (!pendingChannel) return;
 
   const { channels = [] } = await chrome.storage.local.get('channels');
+  const limit = await getChannelLimit();
 
-  if (channels.length >= FREE_LIMIT) {
+  if (channels.length >= limit) {
     setStatus('無料プランは5チャンネルまでです', 'error');
     hidePreview();
     return;
@@ -78,7 +174,7 @@ document.getElementById('confirmBtn').addEventListener('click', async () => {
     return;
   }
 
-  channels.push({
+  const newChannel = {
     id: crypto.randomUUID(),
     platform: pendingChannel.platform,
     channelId: pendingChannel.channelId,
@@ -87,7 +183,13 @@ document.getElementById('confirmBtn').addEventListener('click', async () => {
     isLive: false,
     liveVideoId: null,
     lastChecked: null
-  });
+  };
+  channels.push(newChannel);
+
+  // Firestore同期
+  const user = await fbGetCurrentUser();
+  if (user) await fsSaveChannel(user.uid, newChannel);
+
   sendEvent('channel_add', { platform: pendingChannel.platform });
 
   await chrome.storage.local.set({ channels });
@@ -100,14 +202,15 @@ document.getElementById('confirmBtn').addEventListener('click', async () => {
 
 // ── Channel list ──────────────────────────────────────────────────────────────
 
-function renderChannelList(channels) {
+async function renderChannelList(channels) {
   const el = document.getElementById('channelList');
   const count = channels.length;
-  const atLimit = count >= FREE_LIMIT;
+  const limit = await getChannelLimit();
+  const atLimit = count >= limit;
 
   // カウンター更新
   const counter = document.getElementById('channelCount');
-  counter.textContent = `${count} / ${FREE_LIMIT}`;
+  counter.textContent = limit >= 999 ? `${count} / ∞` : `${count} / ${limit}`;
   counter.className = 'channel-count' + (atLimit ? ' at-limit' : '');
 
   // 追加ボタンの状態
@@ -141,6 +244,11 @@ async function removeChannel(id) {
   const { channels = [] } = await chrome.storage.local.get('channels');
   const updated = channels.filter(ch => ch.id !== id);
   await chrome.storage.local.set({ channels: updated });
+
+  // Firestore同期
+  const user = await fbGetCurrentUser();
+  if (user) await fsDeleteChannel(user.uid, id);
+
   renderChannelList(updated);
 }
 

@@ -27,7 +27,10 @@
     "tabs"
   ],
   "host_permissions": [
-    "https://oshicheck.vercel.app/*"
+    "https://oshicheck.vercel.app/*",
+    "https://identitytoolkit.googleapis.com/*",
+    "https://securetoken.googleapis.com/*",
+    "https://firestore.googleapis.com/*"
   ],
   "options_page": "options.html"
 }
