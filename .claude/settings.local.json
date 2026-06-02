@@ -23,7 +23,14 @@
       "Bash(curl -s \"https://oshicheck.vercel.app/api/status?twitch=ninja\")",
       "Bash(python3 -m json.tool)",
       "Bash(vercel logs *)",
-      "Bash(curl -s \"https://oshicheck.vercel.app/api/channel-info?platform=twitcasting&q=twitcasting_jp\")"
+      "Bash(curl -s \"https://oshicheck.vercel.app/api/channel-info?platform=twitcasting&q=twitcasting_jp\")",
+      "Bash(python3 -c \"from PIL import Image; print\\('OK'\\)\")",
+      "Bash(pip3 install *)",
+      "Bash(sips *)",
+      "Bash(python3)",
+      "Bash(brew install *)",
+      "Bash(magick /tmp/ss_scaled.png -gravity center -background \"#0e0e10\" -extent 1280x800 /Users/Yohsuke/Desktop/claude/oshicheck/screenshot1.png)",
+      "Bash(zip -r oshicheck-extension.zip manifest.json background.js popup.html popup.js popup.css options.html options.js options.css icons/)"
     ]
   }
 }

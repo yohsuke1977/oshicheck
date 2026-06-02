@@ -85,6 +85,7 @@ document.getElementById('confirmBtn').addEventListener('click', async () => {
     liveVideoId: null,
     lastChecked: null
   });
+  sendEvent('channel_add', { platform: pendingChannel.platform });
 
   await chrome.storage.local.set({ channels });
   pendingChannel = null;
@@ -165,5 +166,9 @@ function clearStatus() { setStatus(''); }
 function escHtml(str) {
   return str.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 }
+
+document.getElementById('upgradeBtn')?.addEventListener('click', () => {
+  sendEvent('upgrade_click');
+});
 
 init();

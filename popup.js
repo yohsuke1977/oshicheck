@@ -105,3 +105,4 @@ function escHtml(str) {
 }
 
 render();
+sendEvent('popup_open');

@@ -1,10 +1,13 @@
+importScripts('analytics.js');
+
 const API_BASE = 'https://oshicheck.vercel.app';
 const ALARM_NAME = 'oshicheck-poll';
 const POLL_MINUTES = 2;
 
-chrome.runtime.onInstalled.addListener(async () => {
+chrome.runtime.onInstalled.addListener(async (details) => {
   await chrome.alarms.create(ALARM_NAME, { periodInMinutes: POLL_MINUTES });
   await checkAllChannels();
+  if (details.reason === 'install') sendEvent('extension_install');
 });
 
 chrome.runtime.onStartup.addListener(async () => {
@@ -69,6 +72,7 @@ async function checkAllChannels() {
 }
 
 async function sendNotification(channel) {
+  sendEvent('live_notify', { platform: channel.platform });
   const platform = { youtube: 'YouTube', twitch: 'Twitch' }[channel.platform] ?? channel.platform;
   const url = getStreamUrl(channel);
   chrome.notifications.create(`live-${channel.id}-${Date.now()}`, {
