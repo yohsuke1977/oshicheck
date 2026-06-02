@@ -73,6 +73,15 @@ async function checkAllChannels() {
     if (ch.isLive && !prev[ch.id]) await sendNotification(ch);
   }
 
+  // バッジでライブ中件数を表示
+  const liveCount = updated.filter(ch => ch.isLive).length;
+  if (liveCount > 0) {
+    chrome.action.setBadgeText({ text: String(liveCount) });
+    chrome.action.setBadgeBackgroundColor({ color: '#eb0400' });
+  } else {
+    chrome.action.setBadgeText({ text: '' });
+  }
+
   await chrome.storage.local.set({ channels: updated, lastChecked: Date.now() });
 }
 
