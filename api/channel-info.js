@@ -19,6 +19,7 @@ module.exports = async function handler(req, res) {
     else if (platform === 'twitch')       info = await lookupTwitch(q);
     else if (platform === 'twitcasting')  info = await lookupTwitcasting(q);
     else if (platform === 'showroom')     info = await lookupShowroom(q);
+    else if (platform === 'whowatch')     info = await lookupWhowatch(q);
     else return res.status(400).json({ error: 'Invalid platform' });
 
     res.json(info);
@@ -103,6 +104,38 @@ async function lookupShowroom(input) {
     name: rawName,
     thumbnail: imageMatch ? imageMatch[1] : ''
   };
+}
+
+async function lookupWhowatch(input) {
+  const userPath = input
+    .replace(/^https?:\/\/(?:www\.)?whowatch\.tv\/user\//, '')
+    .replace(/\/$/, '');
+
+  // ライブ中なら詳細情報を取得
+  try {
+    const res = await fetch('https://api.whowatch.tv/lives', {
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    });
+    const data = await res.json();
+
+    for (const cat of data) {
+      for (const key of ['new', 'ranking', 'lives']) {
+        for (const live of cat[key] || []) {
+          if (live.user?.user_path === userPath) {
+            return {
+              channelId: userPath,
+              name: live.user.name,
+              thumbnail: live.user.icon_url || ''
+            };
+          }
+        }
+      }
+    }
+  } catch (e) {}
+
+  // オフライン時はuser_pathのみで登録（名前は配信開始時に更新）
+  if (!userPath) throw new Error('URLが正しくありません');
+  return { channelId: userPath, name: userPath, thumbnail: '' };
 }
 
 async function lookupTwitcasting(input) {

@@ -37,6 +37,7 @@ async function checkAllChannels() {
   const twitchLogins    = channels.filter(ch => ch.platform === 'twitch').map(ch => ch.channelId);
   const twitcastingIds  = channels.filter(ch => ch.platform === 'twitcasting').map(ch => ch.channelId);
   const showroomKeys    = channels.filter(ch => ch.platform === 'showroom').map(ch => ch.channelId);
+  const whowatchPaths   = channels.filter(ch => ch.platform === 'whowatch').map(ch => ch.channelId);
 
   try {
     const params = new URLSearchParams();
@@ -44,6 +45,7 @@ async function checkAllChannels() {
     if (twitchLogins.length)   params.set('twitch', twitchLogins.join(','));
     if (twitcastingIds.length) params.set('twitcasting', twitcastingIds.join(','));
     if (showroomKeys.length)   params.set('showroom', showroomKeys.join(','));
+    if (whowatchPaths.length)  params.set('whowatch', whowatchPaths.join(','));
 
     const res = await fetch(`${API_BASE}/api/status?${params}`);
     if (!res.ok) throw new Error(`API error: ${res.status}`);
@@ -62,6 +64,9 @@ async function checkAllChannels() {
       } else if (ch.platform === 'showroom') {
         const s = data.showroom?.[ch.channelId];
         if (s) { ch.isLive = s.isLive; ch.lastChecked = Date.now(); }
+      } else if (ch.platform === 'whowatch') {
+        const s = data.whowatch?.[ch.channelId];
+        if (s) { ch.isLive = s.isLive; ch.liveId = s.liveId; ch.lastChecked = Date.now(); }
       }
     }
   } catch (e) {
@@ -111,6 +116,10 @@ function getStreamUrl(channel) {
   }
   if (channel.platform === 'showroom') {
     return `https://www.showroom-live.com/${channel.channelId}`;
+  }
+  if (channel.platform === 'whowatch') {
+    if (channel.liveId) return `https://whowatch.tv/live/${channel.liveId}`;
+    return `https://whowatch.tv/user/${channel.channelId}`;
   }
   return null;
 }

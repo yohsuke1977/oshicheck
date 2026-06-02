@@ -1,4 +1,4 @@
-// GET /api/status?youtube=UCxxx,UCyyy&twitch=user1,user2&twitcasting=user1,user2&showroom=key1,key2
+// GET /api/status?youtube=UCxxx,UCyyy&twitch=user1,user2&twitcasting=user1,user2&showroom=key1,key2&whowatch=path1,path2
 // Returns live status for each channel. Cached 60s on CDN.
 
 let twitchTokenCache = null;
@@ -7,7 +7,7 @@ module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const { youtube, twitch, twitcasting, showroom } = req.query;
+  const { youtube, twitch, twitcasting, showroom, whowatch } = req.query;
   const result = {};
 
   try {
@@ -15,6 +15,7 @@ module.exports = async function handler(req, res) {
     if (twitch)       result.twitch       = await checkTwitch(twitch.split(',').filter(Boolean));
     if (twitcasting)  result.twitcasting  = await checkTwitcasting(twitcasting.split(',').filter(Boolean));
     if (showroom)     result.showroom     = await checkShowroom(showroom.split(',').filter(Boolean));
+    if (whowatch)     result.whowatch     = await checkWhowatch(whowatch.split(',').filter(Boolean));
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: e.message });
@@ -79,6 +80,32 @@ async function checkTwitch(logins) {
 
   const liveSet = new Set((data.data || []).map(s => s.user_login.toLowerCase()));
   return Object.fromEntries(logins.map(l => [l, { isLive: liveSet.has(l.toLowerCase()) }]));
+}
+
+async function checkWhowatch(userPaths) {
+  const result = Object.fromEntries(userPaths.map(p => [p, { isLive: false, liveId: null }]));
+  try {
+    const res = await fetch('https://api.whowatch.tv/lives', {
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    });
+    const data = await res.json();
+
+    // 全カテゴリのライブ一覧からuser_path → live_idのマップを作成
+    const liveMap = new Map();
+    for (const cat of data) {
+      for (const key of ['new', 'ranking', 'lives']) {
+        for (const live of cat[key] || []) {
+          if (live.user?.user_path) liveMap.set(live.user.user_path, live.id);
+        }
+      }
+    }
+
+    for (const userPath of userPaths) {
+      const liveId = liveMap.get(userPath);
+      if (liveId) result[userPath] = { isLive: true, liveId };
+    }
+  } catch (e) {}
+  return result;
 }
 
 async function checkShowroom(roomUrlKeys) {

@@ -1,4 +1,4 @@
-const PLATFORM_LABEL = { youtube: 'YouTube', twitch: 'Twitch', twitcasting: 'ツイキャス', showroom: 'SHOWROOM' };
+const PLATFORM_LABEL = { youtube: 'YouTube', twitch: 'Twitch', twitcasting: 'ツイキャス', showroom: 'SHOWROOM', whowatch: 'ふわっち' };
 
 document.getElementById('settingsBtn').addEventListener('click', () => {
   chrome.runtime.openOptionsPage();
@@ -94,6 +94,10 @@ function getStreamUrl(channel) {
   }
   if (channel.platform === 'showroom') {
     return `https://www.showroom-live.com/${channel.channelId}`;
+  }
+  if (channel.platform === 'whowatch') {
+    if (channel.liveId) return `https://whowatch.tv/live/${channel.liveId}`;
+    return `https://whowatch.tv/user/${channel.channelId}`;
   }
   return null;
 }
