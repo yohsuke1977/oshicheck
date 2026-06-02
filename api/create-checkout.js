@@ -28,7 +28,7 @@ module.exports = async function handler(req, res) {
     });
     res.redirect(303, session.url);
   } catch (e) {
-    console.error(e);
-    res.status(500).send('決済セッションの作成に失敗しました');
+    console.error('Stripe error:', e.message, e.type, e.code);
+    res.status(500).send(`決済エラー: ${e.message}`);
   }
 };

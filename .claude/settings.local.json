@@ -66,7 +66,8 @@
       "Bash(curl -s -A \"Mozilla/5.0\" \"https://live2.nicovideo.jp/api/v1/lives?status=onair&userId=9003560\")",
       "Bash(curl -s \"https://snapshot.search.nicovideo.jp/api/v2/snapshot/video/contents/search?q=user%3A9003560&targets=tags&fields=contentId,userId,channelId,liveStatus&filters%5BliveStatus%5D%5B0%5D=onair&_limit=3&_context=oshicheck\")",
       "Bash(curl -s -A \"Mozilla/5.0\" \"https://live.nicovideo.jp/rss/user?userId=9003560\")",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(curl *)"
     ]
   }
 }
