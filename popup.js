@@ -96,7 +96,7 @@ function getStreamUrl(channel) {
     return `https://www.showroom-live.com/${channel.channelId}`;
   }
   if (channel.platform === 'whowatch') {
-    if (channel.liveId) return `https://whowatch.tv/live/${channel.liveId}`;
+    if (channel.liveId) return `https://whowatch.tv/viewer/${channel.liveId}`;
     return `https://whowatch.tv/user/${channel.channelId}`;
   }
   return null;

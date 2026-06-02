@@ -107,35 +107,53 @@ async function lookupShowroom(input) {
 }
 
 async function lookupWhowatch(input) {
-  // /user/xxx または /profile/xxx 両方に対応
+  let lives = null;
+  const fetchLives = async () => {
+    if (lives) return lives;
+    const res = await fetch('https://api.whowatch.tv/lives', { headers: { 'User-Agent': 'Mozilla/5.0' } });
+    lives = await res.json();
+    return lives;
+  };
+
+  // /viewer/{liveId} 形式: ライブIDからユーザーを逆引き
+  const viewerMatch = input.match(/whowatch\.tv\/viewer\/(\d+)/);
+  if (viewerMatch) {
+    const liveId = Number(viewerMatch[1]);
+    try {
+      const data = await fetchLives();
+      for (const cat of data) {
+        for (const key of ['new', 'popular']) {
+          for (const live of cat[key] || []) {
+            if (live.id === liveId) {
+              return { channelId: live.user.user_path, name: live.user.name, thumbnail: live.user.icon_url || '' };
+            }
+          }
+        }
+      }
+    } catch (e) {}
+    throw new Error('ライブが見つかりませんでした。視聴中のURLを使用してください。');
+  }
+
+  // /user/xxx または /profile/xxx
   const userPath = input
     .replace(/^https?:\/\/(?:www\.)?whowatch\.tv\/(?:user|profile)\//, '')
     .replace(/\/$/, '');
 
-  // ライブ中なら詳細情報を取得
-  try {
-    const res = await fetch('https://api.whowatch.tv/lives', {
-      headers: { 'User-Agent': 'Mozilla/5.0' }
-    });
-    const data = await res.json();
+  if (!userPath || userPath.startsWith('http')) throw new Error('URLが正しくありません');
 
+  try {
+    const data = await fetchLives();
     for (const cat of data) {
       for (const key of ['new', 'popular']) {
         for (const live of cat[key] || []) {
           if (live.user?.user_path === userPath) {
-            return {
-              channelId: userPath,
-              name: live.user.name,
-              thumbnail: live.user.icon_url || ''
-            };
+            return { channelId: userPath, name: live.user.name, thumbnail: live.user.icon_url || '' };
           }
         }
       }
     }
   } catch (e) {}
 
-  // オフライン時はuser_pathのみで登録（名前は配信開始時に更新）
-  if (!userPath) throw new Error('URLが正しくありません');
   return { channelId: userPath, name: userPath, thumbnail: '' };
 }
 
