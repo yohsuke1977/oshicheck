@@ -1,5 +1,6 @@
 const API_BASE = 'https://oshicheck.vercel.app';
 const PLATFORM_LABEL = { youtube: 'YouTube', twitch: 'Twitch', twitcasting: 'ツイキャス' };
+const FREE_LIMIT = 5;
 
 let pendingChannel = null;
 
@@ -60,6 +61,13 @@ document.getElementById('confirmBtn').addEventListener('click', async () => {
   if (!pendingChannel) return;
 
   const { channels = [] } = await chrome.storage.local.get('channels');
+
+  if (channels.length >= FREE_LIMIT) {
+    setStatus('無料プランは5チャンネルまでです', 'error');
+    hidePreview();
+    return;
+  }
+
   const exists = channels.some(ch => ch.platform === pendingChannel.platform && ch.channelId === pendingChannel.channelId);
   if (exists) {
     setStatus('このチャンネルはすでに登録済みです', 'error');
@@ -90,6 +98,20 @@ document.getElementById('confirmBtn').addEventListener('click', async () => {
 
 function renderChannelList(channels) {
   const el = document.getElementById('channelList');
+  const count = channels.length;
+  const atLimit = count >= FREE_LIMIT;
+
+  // カウンター更新
+  const counter = document.getElementById('channelCount');
+  counter.textContent = `${count} / ${FREE_LIMIT}`;
+  counter.className = 'channel-count' + (atLimit ? ' at-limit' : '');
+
+  // 追加ボタンの状態
+  document.getElementById('addBtn').disabled = atLimit;
+
+  // アップグレード誘導
+  document.getElementById('upgradePrompt').style.display = atLimit ? 'flex' : 'none';
+
   if (!channels.length) {
     el.innerHTML = '<p class="empty">チャンネルが登録されていません</p>';
     return;

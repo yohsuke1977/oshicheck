@@ -220,3 +220,64 @@ input::placeholder { color: #3d3d50; }
 .btn-remove:hover { color: #ff4444; }
 
 .empty { color: #3d3d50; font-size: 13px; }
+
+.list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.list-header h2 { margin-bottom: 0; }
+
+.channel-count {
+  font-size: 12px;
+  color: #6e6e8a;
+  font-weight: 600;
+  background: #0e0e10;
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: 1px solid #26262c;
+}
+.channel-count.at-limit { color: #ff4444; border-color: #ff4444; }
+
+.upgrade-prompt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 14px;
+  background: linear-gradient(135deg, #1a0e2e, #0e0e10);
+  border: 1px solid #9147ff44;
+  border-radius: 8px;
+}
+
+.upgrade-icon { font-size: 20px; flex-shrink: 0; }
+
+.upgrade-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #efeff1;
+  margin-bottom: 3px;
+}
+
+.upgrade-desc {
+  font-size: 11px;
+  color: #6e6e8a;
+  line-height: 1.4;
+}
+
+.btn-upgrade {
+  margin-left: auto;
+  background: linear-gradient(135deg, #9147ff, #6441a5);
+  border: none;
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+.btn-upgrade:hover { opacity: 0.85; }

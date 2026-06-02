@@ -52,9 +52,20 @@
 
     <!-- チャンネル一覧 -->
     <section class="card">
-      <h2>登録チャンネル</h2>
+      <div class="list-header">
+        <h2>登録チャンネル</h2>
+        <span class="channel-count" id="channelCount">0 / 5</span>
+      </div>
       <div id="channelList">
         <p class="empty">チャンネルが登録されていません</p>
+      </div>
+      <div class="upgrade-prompt" id="upgradePrompt" style="display:none">
+        <div class="upgrade-icon">🔒</div>
+        <div>
+          <div class="upgrade-title">無料プランは5チャンネルまで</div>
+          <div class="upgrade-desc">Pro版にアップグレードすると無制限に追跡できます</div>
+        </div>
+        <button class="btn-upgrade" id="upgradeBtn">Pro版を見る</button>
       </div>
     </section>
   </div>
