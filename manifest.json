@@ -27,8 +27,7 @@
     "tabs"
   ],
   "host_permissions": [
-    "https://oshicheck.vercel.app/*",
-    "http://localhost:3000/*"
+    "https://oshicheck.vercel.app/*"
   ],
   "options_page": "options.html"
 }
