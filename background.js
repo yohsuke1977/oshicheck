@@ -102,10 +102,12 @@ async function sendNotification(channel) {
   const url = getStreamUrl(channel);
   chrome.notifications.create(`live-${channel.id}-${Date.now()}`, {
     type: 'basic',
-    iconUrl: 'icons/icon128.png',
+    iconUrl: chrome.runtime.getURL('icons/icon128.png'),
     title: `${channel.name} が配信中！`,
     message: `${platform} でライブ配信が始まりました`,
     buttons: url ? [{ title: '視聴する' }] : []
+  }, (id) => {
+    if (chrome.runtime.lastError) console.error('通知エラー:', chrome.runtime.lastError.message);
   });
 }
 
