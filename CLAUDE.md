@@ -78,13 +78,13 @@ DB・認証:    未実装（将来: Supabase）
 ---
 
 ## ステータス
-2026年6月 Chrome Web Store審査中
+2026年6月 Chrome Web Store公開中（v0.1.1）
 
 **完成済み機能**
 - YouTube / Twitch / ツイキャス / SHOWROOM / ふわっち 対応
 - Firebase認証・Firestoreチャンネル同期
 - フリーミアム（無料5チャンネル・Pro ¥480/月）
-- Stripe決済（テストモード）→ 審査通過後に本番切替（Issue #10）
+- Stripe決済（本番モード稼働中）
 - GA4解析（Measurement Protocol）
 - アイコンバッジ表示
 
