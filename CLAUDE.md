@@ -78,7 +78,7 @@ DB・認証:    未実装（将来: Supabase）
 ---
 
 ## ステータス
-2026年6月 Chrome Web Store公開中（v0.1.1）
+2026年6月 Chrome Web Store公開中（v0.1.2）
 
 **完成済み機能**
 - YouTube / Twitch / ツイキャス / SHOWROOM / ふわっち 対応
