@@ -34,39 +34,49 @@ module.exports = async function handler(req, res) {
 
 async function checkYouTube(channelIds) {
   const key = process.env.YOUTUBE_API_KEY;
-  const result = {};
+  const result = Object.fromEntries(channelIds.map(id => [id, { isLive: false, videoId: null }]));
 
-  for (const channelId of channelIds) {
+  // 1) 各チャンネルの最近の動画IDを取得（playlistItems: 1ユニット/ch）。並列化。
+  const perChannelVideoIds = {};
+  await Promise.all(channelIds.map(async (channelId) => {
     try {
       const playlistId = 'UU' + channelId.slice(2);
       const itemsRes = await fetch(
         `https://www.googleapis.com/youtube/v3/playlistItems?part=contentDetails&playlistId=${playlistId}&maxResults=5&key=${key}`
       );
       const items = await itemsRes.json();
+      perChannelVideoIds[channelId] = (items.items || []).map(i => i.contentDetails.videoId);
+    } catch (e) {
+      perChannelVideoIds[channelId] = [];
+    }
+  }));
 
-      if (!items.items?.length) {
-        result[channelId] = { isLive: false, videoId: null };
-        continue;
-      }
-
-      const videoIds = items.items.map(i => i.contentDetails.videoId).join(',');
+  // 2) 全チャンネルの動画IDをまとめて videos.list で問い合わせ（50件/呼び出し・1ユニット/呼び出し）。
+  //    以前はチャンネルごとに呼んでいた分をバッチ化しquota消費を約半減。
+  const allIds = [...new Set(Object.values(perChannelVideoIds).flat())];
+  const liveContentById = {};
+  for (let i = 0; i < allIds.length; i += 50) {
+    const batch = allIds.slice(i, i + 50);
+    try {
       const videosRes = await fetch(
-        `https://www.googleapis.com/youtube/v3/videos?part=snippet,liveStreamingDetails&id=${videoIds}&key=${key}`
+        `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${batch.join(',')}&key=${key}`
       );
       const videos = await videosRes.json();
-
-      let isLive = false;
-      let videoId = null;
       for (const v of videos.items || []) {
-        if (v.snippet.liveBroadcastContent === 'live') {
-          isLive = true;
-          videoId = v.id;
-          break;
-        }
+        liveContentById[v.id] = v.snippet.liveBroadcastContent;
       }
-      result[channelId] = { isLive, videoId };
     } catch (e) {
-      result[channelId] = { isLive: false, videoId: null };
+      // このバッチは判定不能 → 該当動画はオフライン扱い
+    }
+  }
+
+  // 3) チャンネルごとに、最近の動画のいずれかが live か判定（playlist順で最初のものを採用）
+  for (const channelId of channelIds) {
+    for (const vid of perChannelVideoIds[channelId] || []) {
+      if (liveContentById[vid] === 'live') {
+        result[channelId] = { isLive: true, videoId: vid };
+        break;
+      }
     }
   }
 
