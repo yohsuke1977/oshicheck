@@ -35,8 +35,9 @@ async function render() {
     const streamUrl = getStreamUrl(ch);
     const tag = `<span class="platform-tag ${ch.platform}">${PLATFORM_LABEL[ch.platform] ?? ch.platform}</span>`;
 
-    const thumb = ch.thumbnail
-      ? `<img class="thumb" src="${ch.thumbnail}" alt="">`
+    const safeThumb = safeUrl(ch.thumbnail);
+    const thumb = safeThumb
+      ? `<img class="thumb" src="${safeThumb}" alt="">`
       : `<div class="thumb-placeholder">▶</div>`;
 
     const status = ch.isLive
@@ -109,6 +110,12 @@ function formatTime(ts) {
 
 function escHtml(str) {
   return str.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+}
+
+// http(s)のURLのみ許可しHTMLエスケープ（属性へ安全に埋め込む）
+function safeUrl(url) {
+  if (!url || !/^https?:\/\//i.test(url)) return '';
+  return escHtml(url);
 }
 
 render();

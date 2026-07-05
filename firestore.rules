@@ -1,0 +1,32 @@
+rules_version = '2';
+
+// 推し通知 Firestore セキュリティルール
+// デプロイ: firebase deploy --only firestore:rules
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /users/{uid} {
+
+      // 本人だけが自分のドキュメントを読める
+      allow read: if request.auth != null && request.auth.uid == uid;
+
+      // チャンネルは本人が read/write 可能
+      match /channels/{channelId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+
+      // サブスク（プラン）は本人が read のみ。
+      // write は一切禁止 → Admin SDK（webhook）のみが更新できる。
+      // これにより「無料でPro昇格」を防ぐ。
+      match /subscription/{docId} {
+        allow read: if request.auth != null && request.auth.uid == uid;
+        allow write: if false;
+      }
+    }
+
+    // それ以外はすべて拒否
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

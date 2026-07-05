@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "推し通知 - ライバー配信アラート",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "推しのライバーがYouTube・Twitchなど複数プラットフォームで配信開始したらまとめて通知",
   "icons": {
     "16": "icons/icon16.png",

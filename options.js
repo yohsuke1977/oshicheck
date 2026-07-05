@@ -39,12 +39,15 @@ async function showSignedIn(user) {
 
   const { plan } = await chrome.storage.local.get('plan');
   const planEl = document.getElementById('signedInPlan');
+  const managePlanBtn = document.getElementById('managePlanBtn');
   if (plan === 'pro') {
     planEl.textContent = 'Pro プラン';
     planEl.className = 'signed-in-plan pro';
+    managePlanBtn.style.display = '';
   } else {
     planEl.textContent = '無料プラン';
     planEl.className = 'signed-in-plan';
+    managePlanBtn.style.display = 'none';
   }
 
   // チャンネルリストを再描画（プラン反映）
@@ -146,7 +149,9 @@ document.getElementById('addBtn').addEventListener('click', async () => {
   hidePreview();
 
   try {
-    const res = await fetch(`${API_BASE}/api/channel-info?${new URLSearchParams({ platform, q })}`);
+    const res = await fetch(`${API_BASE}/api/channel-info?${new URLSearchParams({ platform, q })}`, {
+      headers: { 'x-oshi-key': EXT_SHARED_KEY }
+    });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || '検索に失敗しました');
 
@@ -229,8 +234,8 @@ async function renderChannelList(channels) {
 
   el.innerHTML = channels.map(ch => `
     <div class="channel-row">
-      ${ch.thumbnail
-        ? `<img src="${ch.thumbnail}" alt="">`
+      ${safeUrl(ch.thumbnail)
+        ? `<img src="${safeUrl(ch.thumbnail)}" alt="">`
         : `<div class="thumb-ph">▶</div>`}
       <span class="ch-name">${escHtml(ch.name)}</span>
       <span class="ch-platform ${ch.platform}">${PLATFORM_LABEL[ch.platform] ?? ch.platform}</span>
@@ -281,6 +286,12 @@ function escHtml(str) {
   return str.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 }
 
+// http(s)のURLのみ許可しHTMLエスケープ（属性へ安全に埋め込む）
+function safeUrl(url) {
+  if (!url || !/^https?:\/\//i.test(url)) return '';
+  return escHtml(url);
+}
+
 document.getElementById('upgradeBtn')?.addEventListener('click', async () => {
   sendEvent('upgrade_click');
   const user = await fbGetCurrentUser();
@@ -289,7 +300,15 @@ document.getElementById('upgradeBtn')?.addEventListener('click', async () => {
     return;
   }
   const idToken = await fbGetIdToken();
-  const url = `https://oshicheck.vercel.app/api/create-checkout?uid=${user.uid}&token=${encodeURIComponent(idToken)}`;
+  const url = `https://oshicheck.vercel.app/api/create-checkout?token=${encodeURIComponent(idToken)}`;
+  chrome.tabs.create({ url });
+});
+
+document.getElementById('managePlanBtn')?.addEventListener('click', async () => {
+  const user = await fbGetCurrentUser();
+  if (!user) return;
+  const idToken = await fbGetIdToken();
+  const url = `https://oshicheck.vercel.app/api/portal?token=${encodeURIComponent(idToken)}`;
   chrome.tabs.create({ url });
 });
 

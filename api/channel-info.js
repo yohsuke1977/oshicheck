@@ -8,7 +8,14 @@ let twitchTokenCache = null;
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', 'x-oshi-key');
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  // 共有キー検証（EXT_SHARED_KEY未設定なら従来通り誰でも通る＝フェイルオープン）
+  const requiredKey = process.env.EXT_SHARED_KEY;
+  if (requiredKey && req.headers['x-oshi-key'] !== requiredKey) {
+    return res.status(403).json({ error: 'forbidden' });
+  }
 
   const { platform, q } = req.query;
   if (!q) return res.status(400).json({ error: 'q is required' });

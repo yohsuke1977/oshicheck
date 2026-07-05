@@ -5,13 +5,16 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { initAdmin } = require('./_firebase-admin');
 
 module.exports = async function handler(req, res) {
-  const { uid, token } = req.query;
-  if (!uid || !token) return res.status(400).send('パラメータが不足しています');
+  const { token } = req.query;
+  if (!token) return res.status(400).send('パラメータが不足しています');
 
   const admin = initAdmin();
 
+  // クエリのuidは信用せず、検証済みトークンのuidを使う
+  let uid;
   try {
-    await admin.auth().verifyIdToken(token);
+    const decoded = await admin.auth().verifyIdToken(token);
+    uid = decoded.uid;
   } catch (e) {
     return res.status(401).send('認証エラーです。拡張機能からやり直してください。');
   }

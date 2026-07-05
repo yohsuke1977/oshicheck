@@ -33,11 +33,16 @@ async function checkAllChannels() {
   const prev = Object.fromEntries(channels.map(ch => [ch.id, ch.isLive]));
   const updated = JSON.parse(JSON.stringify(channels));
 
-  const youtubeIds      = channels.filter(ch => ch.platform === 'youtube').map(ch => ch.channelId);
-  const twitchLogins    = channels.filter(ch => ch.platform === 'twitch').map(ch => ch.channelId);
-  const twitcastingIds  = channels.filter(ch => ch.platform === 'twitcasting').map(ch => ch.channelId);
-  const showroomKeys    = channels.filter(ch => ch.platform === 'showroom').map(ch => ch.channelId);
-  const whowatchPaths   = channels.filter(ch => ch.platform === 'whowatch').map(ch => ch.channelId);
+  // ソートしておくと、同じチャンネル集合なら並び順に関わらずクエリが一致し
+  // CDNキャッシュ（s-maxage）が共有されやすくなる
+  const idsFor = (platform) =>
+    channels.filter(ch => ch.platform === platform).map(ch => ch.channelId).sort();
+
+  const youtubeIds      = idsFor('youtube');
+  const twitchLogins    = idsFor('twitch');
+  const twitcastingIds  = idsFor('twitcasting');
+  const showroomKeys    = idsFor('showroom');
+  const whowatchPaths   = idsFor('whowatch');
 
   try {
     const params = new URLSearchParams();
@@ -47,7 +52,9 @@ async function checkAllChannels() {
     if (showroomKeys.length)   params.set('showroom', showroomKeys.join(','));
     if (whowatchPaths.length)  params.set('whowatch', whowatchPaths.join(','));
 
-    const res = await fetch(`${API_BASE}/api/status?${params}`);
+    const res = await fetch(`${API_BASE}/api/status?${params}`, {
+      headers: { 'x-oshi-key': EXT_SHARED_KEY }
+    });
     if (!res.ok) throw new Error(`API error: ${res.status}`);
     const data = await res.json();
 
@@ -98,7 +105,7 @@ async function checkAllChannels() {
 
 async function sendNotification(channel) {
   sendEvent('live_notify', { platform: channel.platform });
-  const platform = { youtube: 'YouTube', twitch: 'Twitch', twitcasting: 'ツイキャス', showroom: 'SHOWROOM' }[channel.platform] ?? channel.platform;
+  const platform = { youtube: 'YouTube', twitch: 'Twitch', twitcasting: 'ツイキャス', showroom: 'SHOWROOM', whowatch: 'ふわっち' }[channel.platform] ?? channel.platform;
   const url = getStreamUrl(channel);
   chrome.notifications.create(`live-${channel.id}-${Date.now()}`, {
     type: 'basic',

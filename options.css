@@ -259,6 +259,20 @@ input::placeholder { color: #3d3d50; }
 }
 .btn-signout:hover { color: #ff4444; border-color: #ff4444; }
 
+.btn-manage-plan {
+  margin-top: 12px;
+  width: 100%;
+  background: none;
+  border: 1px solid #26262c;
+  color: #6e6e8a;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.btn-manage-plan:hover { color: #efeff1; border-color: #3a3a42; }
+
 .feedback-card { text-align: center; }
 
 .btn-feedback {
