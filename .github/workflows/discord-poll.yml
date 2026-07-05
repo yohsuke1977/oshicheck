@@ -1,0 +1,20 @@
+name: Discord live poll
+
+# 5分ごとに /api/discord/poll を叩いて配信開始をDiscordに通知する。
+# GitHub Actionsのスケジュールは最短5分・多少の遅延あり（プロトタイプには十分）。
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch: {}   # 手動実行も可能
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger poll endpoint
+        run: |
+          code=$(curl -s -o /tmp/out.json -w "%{http_code}" \
+            "https://oshicheck.vercel.app/api/discord/poll?secret=${{ secrets.DISCORD_POLL_SECRET }}")
+          echo "HTTP $code"
+          cat /tmp/out.json
+          test "$code" = "200"
