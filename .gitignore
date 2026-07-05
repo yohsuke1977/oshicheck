@@ -5,3 +5,6 @@ node_modules/
 .DS_Store
 .vercel
 *-adminsdk-*.json
+
+# Claude ローカル設定（マシン固有・共有しない）
+.claude/settings.local.json
