@@ -1,5 +1,20 @@
 // GET /api/status?youtube=UCxxx,UCyyy&twitch=user1,user2&twitcasting=user1,user2&showroom=key1,key2&whowatch=path1,path2
-// Returns live status for each channel. Cached 60s on CDN.
+// 各チャンネルのライブ状態を返す。
+//
+// B1第3層（コスト脱ユーザー数依存）: Upstashが設定されていれば、生存状態をRedisに
+// TTLキャッシュする。同じチャンネルを何人が追っていてもTTL窓内の上流フェッチは1回だけ
+// → YouTube等のAPIコストがユーザー数と無関係になる。
+// Upstash未設定なら従来通り毎回直接フェッチ（フェイルオープン）。
+
+const { getRedis } = require('./_redis');
+
+const TTL = Number(process.env.STATUS_CACHE_TTL) || 100; // 秒。ポーリング間隔(120s)より少し短く。
+
+const OFFLINE = {
+  youtube:     { isLive: false, videoId: null },
+  twitch:      { isLive: false },
+  twitcasting: { isLive: false, movieId: null },
+};
 
 let twitchTokenCache = null;
 
@@ -15,24 +30,92 @@ module.exports = async function handler(req, res) {
   }
 
   const { youtube, twitch, twitcasting, showroom, whowatch } = req.query;
+  const ids = {
+    youtube:     split(youtube),
+    twitch:      split(twitch),
+    twitcasting: split(twitcasting),
+    showroom:    split(showroom),
+    whowatch:    split(whowatch),
+  };
   const result = {};
+  const redis = getRedis();
 
   try {
-    if (youtube)      result.youtube      = await checkYouTube(youtube.split(',').filter(Boolean));
-    if (twitch)       result.twitch       = await checkTwitch(twitch.split(',').filter(Boolean));
-    if (twitcasting)  result.twitcasting  = await checkTwitcasting(twitcasting.split(',').filter(Boolean));
-    if (showroom)     result.showroom     = await checkShowroom(showroom.split(',').filter(Boolean));
-    if (whowatch)     result.whowatch     = await checkWhowatch(whowatch.split(',').filter(Boolean));
+    if (redis) {
+      // --- キャッシュ経路（コスト脱ユーザー数依存）---
+      if (ids.youtube.length)     result.youtube     = await cachedPerChannel(redis, 'yt', ids.youtube, fetchYouTube, OFFLINE.youtube);
+      if (ids.twitch.length)      result.twitch      = await cachedPerChannel(redis, 'tw', ids.twitch, fetchTwitch, OFFLINE.twitch);
+      if (ids.twitcasting.length) result.twitcasting = await cachedPerChannel(redis, 'tc', ids.twitcasting, fetchTwitcasting, OFFLINE.twitcasting);
+      // SHOWROOM/ふわっちは1フェッチで全ライブ一覧が返る → 一覧を丸ごと1キーにキャッシュ（定数コスト）
+      if (ids.showroom.length)    result.showroom    = buildShowroom(await cachedShared(redis, 'sr:onlives', fetchShowroomLiveSet), ids.showroom);
+      if (ids.whowatch.length)    result.whowatch    = buildWhowatch(await cachedShared(redis, 'ww:onlives', fetchWhowatchLiveMap), ids.whowatch);
+      // CDNには載せない（Redis側で集約済み。CDNキャッシュするとRedisの共有効果を素通りする）
+      res.setHeader('Cache-Control', 'no-store');
+    } else {
+      // --- 直接フェッチ経路（従来動作・Upstash未設定時のフォールバック）---
+      if (ids.youtube.length)     result.youtube     = await fetchYouTube(ids.youtube);
+      if (ids.twitch.length)      result.twitch      = await fetchTwitch(ids.twitch);
+      if (ids.twitcasting.length) result.twitcasting = await fetchTwitcasting(ids.twitcasting);
+      if (ids.showroom.length)    result.showroom    = buildShowroom(await fetchShowroomLiveSet(), ids.showroom);
+      if (ids.whowatch.length)    result.whowatch    = buildWhowatch(await fetchWhowatchLiveMap(), ids.whowatch);
+      res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=30');
+    }
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: e.message });
   }
 
-  res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=30');
   res.json(result);
 };
 
-async function checkYouTube(channelIds) {
+function split(v) {
+  return v ? v.split(',').filter(Boolean) : [];
+}
+
+// ---------------------------------------------------------------------------
+// キャッシュ層
+// ---------------------------------------------------------------------------
+
+// チャンネル単位でキャッシュ。ヒットは即返し、ミス分だけ fetchFn でまとめて取得しキャッシュ。
+async function cachedPerChannel(redis, prefix, ids, fetchFn, offline) {
+  const result = {};
+  const keys = ids.map(id => `${prefix}:${id}`);
+  const cached = keys.length ? await redis.mget(...keys) : [];
+
+  const missing = [];
+  ids.forEach((id, i) => {
+    if (cached[i] != null) result[id] = cached[i];
+    else missing.push(id);
+  });
+
+  if (missing.length) {
+    const fresh = await fetchFn(missing);
+    const pipe = redis.pipeline();
+    for (const id of missing) {
+      const state = fresh[id] ?? offline;
+      result[id] = state;
+      pipe.set(`${prefix}:${id}`, state, { ex: TTL });
+    }
+    await pipe.exec();
+  }
+  return result;
+}
+
+// 全ライブ一覧を丸ごと1キーにキャッシュ（SHOWROOM/ふわっち）。ミス時のみ上流を1回叩く。
+async function cachedShared(redis, cacheKey, fetchRaw) {
+  let raw = await redis.get(cacheKey);
+  if (raw == null) {
+    raw = await fetchRaw();
+    await redis.set(cacheKey, raw, { ex: TTL });
+  }
+  return raw;
+}
+
+// ---------------------------------------------------------------------------
+// 上流フェッチ（プラットフォーム別）
+// ---------------------------------------------------------------------------
+
+async function fetchYouTube(channelIds) {
   const key = process.env.YOUTUBE_API_KEY;
   const result = Object.fromEntries(channelIds.map(id => [id, { isLive: false, videoId: null }]));
 
@@ -83,7 +166,7 @@ async function checkYouTube(channelIds) {
   return result;
 }
 
-async function checkTwitch(logins) {
+async function fetchTwitch(logins) {
   const token = await getTwitchToken();
   const query = logins.map(l => `user_login=${encodeURIComponent(l)}`).join('&');
 
@@ -99,69 +182,7 @@ async function checkTwitch(logins) {
   return Object.fromEntries(logins.map(l => [l, { isLive: liveSet.has(l.toLowerCase()) }]));
 }
 
-async function checkWhowatch(userPaths) {
-  // URLが混入している場合に備えてパスだけ抽出
-  const cleanPaths = userPaths.map(p =>
-    p.replace(/^https?:\/\/(?:www\.)?whowatch\.tv\/(?:user|profile)\//, '').replace(/\/$/, '')
-  );
-  const result = Object.fromEntries(userPaths.map((p, i) => [p, { isLive: false, liveId: null }]));
-  try {
-    const res = await fetch('https://api.whowatch.tv/lives', {
-      headers: { 'User-Agent': 'Mozilla/5.0' }
-    });
-    const data = await res.json();
-
-    // user_path → live entry のマップ（名前・サムネ・liveId取得用）
-    const liveInfoMap = new Map();
-    for (const cat of data) {
-      for (const key of ['new', 'popular']) {
-        for (const live of cat[key] || []) {
-          if (live.user?.user_path) {
-            liveInfoMap.set(live.user.user_path, {
-              liveId: live.id,
-              name: live.user.name,
-              thumbnail: live.user.icon_url || ''
-            });
-          }
-        }
-      }
-    }
-
-    for (let i = 0; i < userPaths.length; i++) {
-      const info = liveInfoMap.get(cleanPaths[i]);
-      if (info) {
-        result[userPaths[i]] = { isLive: true, ...info };
-      }
-    }
-  } catch (e) {}
-  return result;
-}
-
-async function checkShowroom(roomUrlKeys) {
-  const result = Object.fromEntries(roomUrlKeys.map(k => [k, { isLive: false }]));
-  try {
-    const res = await fetch('https://www.showroom-live.com/api/live/onlives', {
-      headers: { 'User-Agent': 'Mozilla/5.0' }
-    });
-    const data = await res.json();
-
-    const liveSet = new Set();
-    for (const genre of data.onlives || []) {
-      for (const live of genre.lives || []) {
-        if (live.room_url_key) liveSet.add(live.room_url_key);
-      }
-    }
-
-    for (const key of roomUrlKeys) {
-      result[key] = { isLive: liveSet.has(key) };
-    }
-  } catch (e) {
-    // Return all offline on error
-  }
-  return result;
-}
-
-async function checkTwitcasting(userIds) {
+async function fetchTwitcasting(userIds) {
   const auth = Buffer.from(
     `${process.env.TWITCASTING_CLIENT_ID}:${process.env.TWITCASTING_CLIENT_SECRET}`
   ).toString('base64');
@@ -186,6 +207,69 @@ async function checkTwitcasting(userIds) {
     }
   }
   return result;
+}
+
+// SHOWROOM: 全ライブ一覧を1回取得し、配信中の room_url_key 配列を返す。
+async function fetchShowroomLiveSet() {
+  try {
+    const res = await fetch('https://www.showroom-live.com/api/live/onlives', {
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    });
+    const data = await res.json();
+    const liveKeys = [];
+    for (const genre of data.onlives || []) {
+      for (const live of genre.lives || []) {
+        if (live.room_url_key) liveKeys.push(live.room_url_key);
+      }
+    }
+    return liveKeys;
+  } catch (e) {
+    return [];
+  }
+}
+
+function buildShowroom(liveKeys, roomUrlKeys) {
+  const liveSet = new Set(liveKeys);
+  return Object.fromEntries(roomUrlKeys.map(k => [k, { isLive: liveSet.has(k) }]));
+}
+
+// ふわっち: 全ライブ一覧を1回取得し、user_path → {liveId,name,thumbnail} のマップを返す。
+async function fetchWhowatchLiveMap() {
+  try {
+    const res = await fetch('https://api.whowatch.tv/lives', {
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    });
+    const data = await res.json();
+
+    const liveInfoMap = {};
+    for (const cat of data) {
+      for (const key of ['new', 'popular']) {
+        for (const live of cat[key] || []) {
+          if (live.user?.user_path) {
+            liveInfoMap[live.user.user_path] = {
+              liveId: live.id,
+              name: live.user.name,
+              thumbnail: live.user.icon_url || ''
+            };
+          }
+        }
+      }
+    }
+    return liveInfoMap;
+  } catch (e) {
+    return {};
+  }
+}
+
+function buildWhowatch(liveMap, userPaths) {
+  // URLが混入している場合に備えてパスだけ抽出
+  const cleanPaths = userPaths.map(p =>
+    p.replace(/^https?:\/\/(?:www\.)?whowatch\.tv\/(?:user|profile)\//, '').replace(/\/$/, '')
+  );
+  return Object.fromEntries(userPaths.map((p, i) => {
+    const info = liveMap[cleanPaths[i]];
+    return [p, info ? { isLive: true, ...info } : { isLive: false, liveId: null }];
+  }));
 }
 
 async function getTwitchToken() {
