@@ -2,7 +2,12 @@ importScripts('analytics.js');
 
 const API_BASE = 'https://oshicheck.vercel.app';
 const ALARM_NAME = 'oshicheck-poll';
-const POLL_MINUTES = 2;
+// サーバーコスト（Vercel Fluid Active CPU）削減のため 2分→10分（v0.1.5）。
+// PC操作中なら10分以内に通知される。離席中はさらに間引く（下のisPollSkippable参照）。
+const POLL_MINUTES = 10;
+// 離席（idle）判定のしきい値と、離席中の実効ポーリング間隔
+const IDLE_THRESHOLD_SEC = 600;
+const IDLE_POLL_MINUTES = 30;
 
 chrome.runtime.onInstalled.addListener(async (details) => {
   await chrome.alarms.create(ALARM_NAME, { periodInMinutes: POLL_MINUTES });
@@ -15,8 +20,26 @@ chrome.runtime.onStartup.addListener(async () => {
 });
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
-  if (alarm.name === ALARM_NAME) await checkAllChannels();
+  if (alarm.name !== ALARM_NAME) return;
+  if (await isPollSkippable()) return;
+  await checkAllChannels();
 });
+
+// 画面ロック中はポーリングしない。離席中（入力なしが続く）は間隔をIDLE_POLL_MINUTESまで延ばす。
+// どちらも「通知を見る人がいない時間帯のサーバーコスト」を削る目的。判定に失敗したら通常通り実行。
+async function isPollSkippable() {
+  try {
+    const state = await chrome.idle.queryState(IDLE_THRESHOLD_SEC);
+    if (state === 'locked') return true;
+    if (state === 'idle') {
+      const { lastChecked = 0 } = await chrome.storage.local.get('lastChecked');
+      return Date.now() - lastChecked < IDLE_POLL_MINUTES * 60_000;
+    }
+  } catch (e) {
+    // idle APIが使えない環境では常にポーリングする
+  }
+  return false;
+}
 
 chrome.notifications.onButtonClicked.addListener(async (notifId, btnIdx) => {
   if (btnIdx !== 0) return;

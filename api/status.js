@@ -8,7 +8,9 @@
 
 const { getRedis } = require('./_redis');
 
-const TTL = Number(process.env.STATUS_CACHE_TTL) || 100; // 秒。ポーリング間隔(120s)より少し短く。
+// 秒。ミス時の上流フェッチ＆JSONパース（=Active CPUの主因）を減らすため180に設定。
+// 拡張のポーリングは10分（v0.1.5〜）なので、通知遅延への影響は小さい。
+const TTL = Number(process.env.STATUS_CACHE_TTL) || 180;
 
 const OFFLINE = {
   youtube:     { isLive: false, videoId: null },
@@ -49,8 +51,10 @@ module.exports = async function handler(req, res) {
       // SHOWROOM/ふわっちは1フェッチで全ライブ一覧が返る → 一覧を丸ごと1キーにキャッシュ（定数コスト）
       if (ids.showroom.length)    result.showroom    = buildShowroom(await cachedShared(redis, 'sr:onlives', fetchShowroomLiveSet), ids.showroom);
       if (ids.whowatch.length)    result.whowatch    = buildWhowatch(await cachedShared(redis, 'ww:onlives', fetchWhowatchLiveMap), ids.whowatch);
-      // CDNには載せない（Redis側で集約済み。CDNキャッシュするとRedisの共有効果を素通りする）
-      res.setHeader('Cache-Control', 'no-store');
+      // CDNにも載せる。同一ユーザーのポーリングはクエリが毎回同じなので、CDNヒット時は
+      // 関数の起動自体が発生しない（Fluid Active CPUゼロ）。CDN=ユーザー内の重複排除、
+      // Redis=ユーザー間の重複排除で相補的。旧バージョン(2分ポーリング)の呼び出し削減に特に効く。
+      res.setHeader('Cache-Control', 's-maxage=240, stale-while-revalidate=120');
     } else {
       // --- 直接フェッチ経路（従来動作・Upstash未設定時のフォールバック）---
       if (ids.youtube.length)     result.youtube     = await fetchYouTube(ids.youtube);
@@ -58,7 +62,7 @@ module.exports = async function handler(req, res) {
       if (ids.twitcasting.length) result.twitcasting = await fetchTwitcasting(ids.twitcasting);
       if (ids.showroom.length)    result.showroom    = buildShowroom(await fetchShowroomLiveSet(), ids.showroom);
       if (ids.whowatch.length)    result.whowatch    = buildWhowatch(await fetchWhowatchLiveMap(), ids.whowatch);
-      res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=30');
+      res.setHeader('Cache-Control', 's-maxage=240, stale-while-revalidate=120');
     }
   } catch (e) {
     console.error(e);
