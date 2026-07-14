@@ -1,4 +1,4 @@
-const PLATFORM_LABEL = { youtube: 'YouTube', twitch: 'Twitch', twitcasting: 'ツイキャス', showroom: 'SHOWROOM', whowatch: 'ふわっち' };
+const PLATFORM_LABEL = { youtube: 'YouTube', twitch: 'Twitch', twitcasting: t('platformTwitcasting'), showroom: 'SHOWROOM', whowatch: t('platformWhowatch') };
 
 document.getElementById('settingsBtn').addEventListener('click', () => {
   chrome.runtime.openOptionsPage();
@@ -9,23 +9,15 @@ document.getElementById('addBtn').addEventListener('click', () => {
 });
 
 async function render() {
-  const { channels = [], settings = {}, lastChecked } = await chrome.storage.local.get(['channels', 'settings', 'lastChecked']);
+  const { channels = [], lastChecked } = await chrome.storage.local.get(['channels', 'lastChecked']);
   const list = document.getElementById('channelList');
-
-  const hasApiKey = settings.youtubeApiKey || (settings.twitchClientId && settings.twitchClientSecret);
 
   if (!channels.length) {
     list.innerHTML = `<div class="empty-state">
-      チャンネルがまだありません<br>
-      <small>「+ チャンネルを追加」から始めましょう</small>
+      ${escHtml(t('popupEmptyTitle'))}<br>
+      <small>${escHtml(t('popupEmptySub'))}</small>
     </div>`;
     return;
-  }
-
-  if (!hasApiKey) {
-    list.innerHTML = `<div class="empty-state">
-      <small>設定からAPIキーを入力してください</small>
-    </div>`;
   }
 
   // Live channels first, then offline
@@ -77,7 +69,7 @@ async function render() {
     const footer = document.querySelector('.footer');
     const ts = document.createElement('div');
     ts.className = 'last-checked';
-    ts.textContent = `最終確認: ${formatTime(lastChecked)}`;
+    ts.textContent = t('popupLastChecked', [formatTime(lastChecked)]);
     footer.before(ts);
   }
 }
@@ -105,7 +97,7 @@ function getStreamUrl(channel) {
 
 function formatTime(ts) {
   const d = new Date(ts);
-  return d.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 }
 
 function escHtml(str) {

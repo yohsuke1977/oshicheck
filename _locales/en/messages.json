@@ -1,0 +1,74 @@
+{
+  "extName": { "message": "Oshi Alert - Live Notifications for VTubers & JP Streamers" },
+  "extDesc": { "message": "Instant desktop alerts when your favorite streamers go live on YouTube, Twitch, TwitCasting, SHOWROOM or WhoWatch. Free." },
+  "extShortName": { "message": "Oshi Alert" },
+  "optPageTitle": { "message": "Oshi Alert Settings" },
+
+  "platformTwitcasting": { "message": "TwitCasting" },
+  "platformWhowatch": { "message": "WhoWatch" },
+
+  "popupSettings": { "message": "Settings" },
+  "popupAddChannel": { "message": "+ Add channel" },
+  "popupEmptyTitle": { "message": "No channels yet" },
+  "popupEmptySub": { "message": "Start with \"+ Add channel\"" },
+  "popupLastChecked": {
+    "message": "Last checked: $TIME$",
+    "placeholders": { "time": { "content": "$1" } }
+  },
+
+  "notifLiveTitle": {
+    "message": "$NAME$ is live!",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "notifLiveBody": {
+    "message": "Just went live on $PLATFORM$",
+    "placeholders": { "platform": { "content": "$1" } }
+  },
+  "notifWatch": { "message": "Watch now" },
+
+  "optAddChannel": { "message": "Add a channel" },
+  "optPlatform": { "message": "Platform" },
+  "labelYoutube": { "message": "YouTube channel URL / @handle" },
+  "phYoutube": { "message": "https://www.youtube.com/@... or UCxxxx" },
+  "labelTwitch": { "message": "Twitch username" },
+  "phTwitch": { "message": "username" },
+  "labelTwitcasting": { "message": "TwitCasting URL / user ID" },
+  "phTwitcasting": { "message": "https://twitcasting.tv/... or username" },
+  "labelShowroom": { "message": "SHOWROOM room URL / room key" },
+  "phShowroom": { "message": "https://www.showroom-live.com/... or room_url_key" },
+  "labelWhowatch": { "message": "WhoWatch user URL" },
+  "phWhowatch": { "message": "https://whowatch.tv/user/w:xxxxxx" },
+  "btnAdd": { "message": "Add channel" },
+  "btnRegister": { "message": "Add" },
+
+  "errEnterQuery": { "message": "Enter a URL or username" },
+  "statusSearching": { "message": "Searching..." },
+  "errSearchFailed": { "message": "Search failed" },
+  "errFreeLimit": { "message": "The free plan is limited to 5 channels" },
+  "errAlreadyAdded": { "message": "This channel is already added" },
+
+  "authLogin": { "message": "Sign in" },
+  "authHint": { "message": "Sign in to sync your channels across devices" },
+  "authEmail": { "message": "Email" },
+  "authPassword": { "message": "Password (6+ characters)" },
+  "btnSignIn": { "message": "Sign in" },
+  "btnSignUp": { "message": "Sign up" },
+  "btnSignOut": { "message": "Sign out" },
+  "btnManagePlan": { "message": "Manage / cancel plan" },
+  "planPro": { "message": "Pro plan" },
+  "planFree": { "message": "Free plan" },
+  "authEnterBoth": { "message": "Enter your email and password" },
+  "authProcessing": { "message": "Processing..." },
+  "alertLoginForPro": { "message": "Please sign in to upgrade to Pro." },
+
+  "fbTitle": { "message": "Feedback" },
+  "fbHint": { "message": "Report bugs or request new platforms here" },
+  "fbSend": { "message": "Send feedback" },
+
+  "listTitle": { "message": "Your channels" },
+  "listEmpty": { "message": "No channels added" },
+  "upgradeTitle": { "message": "Free plan: up to 5 channels" },
+  "upgradeDesc": { "message": "Upgrade to Pro to track unlimited channels" },
+  "btnUpgrade": { "message": "See Pro" },
+  "removeTitle": { "message": "Remove" }
+}

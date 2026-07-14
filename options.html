@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html data-i18n-doctitle="optPageTitle">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,14 +8,14 @@
 </head>
 <body>
   <div class="container">
-    <h1 class="logo">推し通知</h1>
+    <h1 class="logo" data-i18n="extShortName">推し通知</h1>
 
     <!-- チャンネル追加 -->
     <section class="card">
-      <h2>チャンネルを追加</h2>
+      <h2 data-i18n="optAddChannel">チャンネルを追加</h2>
 
       <div class="field">
-        <label>プラットフォーム</label>
+        <label data-i18n="optPlatform">プラットフォーム</label>
         <div class="radio-group">
           <label class="radio">
             <input type="radio" name="platform" value="youtube" checked>
@@ -27,7 +27,7 @@
           </label>
           <label class="radio">
             <input type="radio" name="platform" value="twitcasting">
-            <span>ツイキャス</span>
+            <span data-i18n="platformTwitcasting">ツイキャス</span>
           </label>
           <label class="radio">
             <input type="radio" name="platform" value="showroom">
@@ -35,17 +35,17 @@
           </label>
           <label class="radio">
             <input type="radio" name="platform" value="whowatch">
-            <span>ふわっち</span>
+            <span data-i18n="platformWhowatch">ふわっち</span>
           </label>
         </div>
       </div>
 
       <div class="field">
-        <label id="inputLabel">YouTubeチャンネルURL / @ハンドル</label>
-        <input type="text" id="channelInput" placeholder="https://www.youtube.com/@... または UCxxxx">
+        <label id="inputLabel" data-i18n="labelYoutube">YouTubeチャンネルURL / @ハンドル</label>
+        <input type="text" id="channelInput" data-i18n-placeholder="phYoutube" placeholder="https://www.youtube.com/@... または UCxxxx">
       </div>
 
-      <button class="btn-primary" id="addBtn">チャンネルを追加</button>
+      <button class="btn-primary" id="addBtn" data-i18n="btnAdd">チャンネルを追加</button>
       <div class="add-status" id="addStatus"></div>
 
       <div class="preview" id="preview" style="display:none">
@@ -54,26 +54,26 @@
           <div id="previewName" class="preview-name"></div>
           <div id="previewPlatform" class="preview-platform"></div>
         </div>
-        <button class="btn-confirm" id="confirmBtn">登録する</button>
+        <button class="btn-confirm" id="confirmBtn" data-i18n="btnRegister">登録する</button>
       </div>
     </section>
 
     <!-- 認証 -->
     <section class="card">
       <div id="authSignedOut">
-        <h2>ログイン</h2>
-        <p class="hint">ログインするとチャンネルを複数デバイスで同期できます</p>
+        <h2 data-i18n="authLogin">ログイン</h2>
+        <p class="hint" data-i18n="authHint">ログインするとチャンネルを複数デバイスで同期できます</p>
         <div class="field">
-          <label>メールアドレス</label>
+          <label data-i18n="authEmail">メールアドレス</label>
           <input type="email" id="authEmail" placeholder="your@email.com" autocomplete="email">
         </div>
         <div class="field">
-          <label>パスワード（6文字以上）</label>
+          <label data-i18n="authPassword">パスワード（6文字以上）</label>
           <input type="password" id="authPassword" placeholder="password" autocomplete="current-password">
         </div>
         <div class="auth-buttons">
-          <button class="btn-primary" id="signInBtn">ログイン</button>
-          <button class="btn-secondary" id="signUpBtn">新規登録</button>
+          <button class="btn-primary" id="signInBtn" data-i18n="btnSignIn">ログイン</button>
+          <button class="btn-secondary" id="signUpBtn" data-i18n="btnSignUp">新規登録</button>
         </div>
         <div class="auth-msg" id="authMsg"></div>
       </div>
@@ -83,17 +83,17 @@
             <div class="signed-in-email" id="signedInEmail"></div>
             <div class="signed-in-plan" id="signedInPlan"></div>
           </div>
-          <button class="btn-signout" id="signOutBtn">ログアウト</button>
+          <button class="btn-signout" id="signOutBtn" data-i18n="btnSignOut">ログアウト</button>
         </div>
-        <button class="btn-manage-plan" id="managePlanBtn" style="display:none">プランを管理・解約</button>
+        <button class="btn-manage-plan" id="managePlanBtn" style="display:none" data-i18n="btnManagePlan">プランを管理・解約</button>
       </div>
     </section>
 
     <!-- フィードバック -->
     <section class="card feedback-card">
-      <h2>フィードバック</h2>
-      <p class="hint">バグ報告・対応プラットフォームのリクエストはこちらから</p>
-      <a class="btn-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSfW3OG9sLvSZ6lmFk6mypmMoFt_xHQppH0Y3a6nwCg_cPhj5w/viewform" target="_blank" rel="noopener">
+      <h2 data-i18n="fbTitle">フィードバック</h2>
+      <p class="hint" data-i18n="fbHint">バグ報告・対応プラットフォームのリクエストはこちらから</p>
+      <a class="btn-feedback" href="https://docs.google.com/forms/d/e/1FAIpQLSfW3OG9sLvSZ6lmFk6mypmMoFt_xHQppH0Y3a6nwCg_cPhj5w/viewform" target="_blank" rel="noopener" data-i18n="fbSend">
         フィードバックを送る
       </a>
     </section>
@@ -101,25 +101,24 @@
     <!-- チャンネル一覧 -->
     <section class="card">
       <div class="list-header">
-        <h2>登録チャンネル</h2>
+        <h2 data-i18n="listTitle">登録チャンネル</h2>
         <span class="channel-count" id="channelCount">0 / 5</span>
       </div>
       <div id="channelList">
-        <p class="empty">チャンネルが登録されていません</p>
+        <p class="empty" data-i18n="listEmpty">チャンネルが登録されていません</p>
       </div>
       <div class="upgrade-prompt" id="upgradePrompt" style="display:none">
         <div class="upgrade-icon">🔒</div>
         <div>
-          <div class="upgrade-title">無料プランは5チャンネルまで</div>
-          <div class="upgrade-desc">Pro版にアップグレードすると無制限に追跡できます</div>
+          <div class="upgrade-title" data-i18n="upgradeTitle">無料プランは5チャンネルまで</div>
+          <div class="upgrade-desc" data-i18n="upgradeDesc">Pro版にアップグレードすると無制限に追跡できます</div>
         </div>
-        <button class="btn-upgrade" id="upgradeBtn">Pro版を見る</button>
+        <button class="btn-upgrade" id="upgradeBtn" data-i18n="btnUpgrade">Pro版を見る</button>
       </div>
     </section>
   </div>
 
-  </div>
-
+  <script src="i18n.js"></script>
   <script src="analytics.js"></script>
   <script src="firebase.js"></script>
   <script src="options.js"></script>

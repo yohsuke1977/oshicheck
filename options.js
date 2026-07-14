@@ -1,5 +1,5 @@
 const API_BASE = 'https://oshicheck.vercel.app';
-const PLATFORM_LABEL = { youtube: 'YouTube', twitch: 'Twitch', twitcasting: 'ツイキャス', showroom: 'SHOWROOM', whowatch: 'ふわっち' };
+const PLATFORM_LABEL = { youtube: 'YouTube', twitch: 'Twitch', twitcasting: t('platformTwitcasting'), showroom: 'SHOWROOM', whowatch: t('platformWhowatch') };
 const FREE_LIMIT = 5;
 
 async function getChannelLimit() {
@@ -41,11 +41,11 @@ async function showSignedIn(user) {
   const planEl = document.getElementById('signedInPlan');
   const managePlanBtn = document.getElementById('managePlanBtn');
   if (plan === 'pro') {
-    planEl.textContent = 'Pro プラン';
+    planEl.textContent = t('planPro');
     planEl.className = 'signed-in-plan pro';
     managePlanBtn.style.display = '';
   } else {
-    planEl.textContent = '無料プラン';
+    planEl.textContent = t('planFree');
     planEl.className = 'signed-in-plan';
     managePlanBtn.style.display = 'none';
   }
@@ -58,9 +58,9 @@ async function showSignedIn(user) {
 async function handleAuth(isSignUp) {
   const email = document.getElementById('authEmail').value.trim();
   const password = document.getElementById('authPassword').value;
-  if (!email || !password) return setAuthMsg('メールアドレスとパスワードを入力してください', 'error');
+  if (!email || !password) return setAuthMsg(t('authEnterBoth'), 'error');
 
-  setAuthMsg('処理中...', '');
+  setAuthMsg(t('authProcessing'), '');
   try {
     const user = isSignUp ? await fbSignUp(email, password) : await fbSignIn(email, password);
 
@@ -115,22 +115,9 @@ function setupPlatformSwitch() {
     r.addEventListener('change', () => {
       const label = document.getElementById('inputLabel');
       const input = document.getElementById('channelInput');
-      if (r.value === 'youtube') {
-        label.textContent = 'YouTubeチャンネルURL / @ハンドル';
-        input.placeholder = 'https://www.youtube.com/@... または UCxxxx';
-      } else if (r.value === 'twitch') {
-        label.textContent = 'Twitchユーザー名';
-        input.placeholder = 'username';
-      } else if (r.value === 'twitcasting') {
-        label.textContent = 'ツイキャスURL / ユーザーID';
-        input.placeholder = 'https://twitcasting.tv/... または username';
-      } else if (r.value === 'showroom') {
-        label.textContent = 'SHOWROOMルームURL / ルームキー';
-        input.placeholder = 'https://www.showroom-live.com/... または room_url_key';
-      } else {
-        label.textContent = 'ふわっちユーザーURL';
-        input.placeholder = 'https://whowatch.tv/user/w:xxxxxx';
-      }
+      const key = { youtube: 'Youtube', twitch: 'Twitch', twitcasting: 'Twitcasting', showroom: 'Showroom', whowatch: 'Whowatch' }[r.value];
+      label.textContent = t(`label${key}`);
+      input.placeholder = t(`ph${key}`);
       hidePreview();
       clearStatus();
       input.value = '';
@@ -143,9 +130,9 @@ function setupPlatformSwitch() {
 document.getElementById('addBtn').addEventListener('click', async () => {
   const platform = document.querySelector('input[name="platform"]:checked').value;
   const q = document.getElementById('channelInput').value.trim();
-  if (!q) return setStatus('URLまたはユーザー名を入力してください', 'error');
+  if (!q) return setStatus(t('errEnterQuery'), 'error');
 
-  setStatus('検索中...', 'loading');
+  setStatus(t('statusSearching'), 'loading');
   hidePreview();
 
   try {
@@ -153,7 +140,7 @@ document.getElementById('addBtn').addEventListener('click', async () => {
       headers: { 'x-oshi-key': EXT_SHARED_KEY }
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || '検索に失敗しました');
+    if (!res.ok) throw new Error(data.error || t('errSearchFailed'));
 
     pendingChannel = { ...data, platform };
     clearStatus();
@@ -170,14 +157,14 @@ document.getElementById('confirmBtn').addEventListener('click', async () => {
   const limit = await getChannelLimit();
 
   if (channels.length >= limit) {
-    setStatus('無料プランは5チャンネルまでです', 'error');
+    setStatus(t('errFreeLimit'), 'error');
     hidePreview();
     return;
   }
 
   const exists = channels.some(ch => ch.platform === pendingChannel.platform && ch.channelId === pendingChannel.channelId);
   if (exists) {
-    setStatus('このチャンネルはすでに登録済みです', 'error');
+    setStatus(t('errAlreadyAdded'), 'error');
     hidePreview();
     return;
   }
@@ -228,7 +215,7 @@ async function renderChannelList(channels) {
   document.getElementById('upgradePrompt').style.display = atLimit ? 'flex' : 'none';
 
   if (!channels.length) {
-    el.innerHTML = '<p class="empty">チャンネルが登録されていません</p>';
+    el.innerHTML = `<p class="empty">${escHtml(t('listEmpty'))}</p>`;
     return;
   }
 
@@ -239,7 +226,7 @@ async function renderChannelList(channels) {
         : `<div class="thumb-ph">▶</div>`}
       <span class="ch-name">${escHtml(ch.name)}</span>
       <span class="ch-platform ${ch.platform}">${PLATFORM_LABEL[ch.platform] ?? ch.platform}</span>
-      <button class="btn-remove" data-id="${ch.id}" title="削除">×</button>
+      <button class="btn-remove" data-id="${ch.id}" title="${escHtml(t('removeTitle'))}">×</button>
     </div>
   `).join('');
 
@@ -296,7 +283,7 @@ document.getElementById('upgradeBtn')?.addEventListener('click', async () => {
   sendEvent('upgrade_click');
   const user = await fbGetCurrentUser();
   if (!user) {
-    alert('Proプランへのアップグレードにはログインが必要です。');
+    alert(t('alertLoginForPro'));
     return;
   }
   const idToken = await fbGetIdToken();

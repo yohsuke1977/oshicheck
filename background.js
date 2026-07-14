@@ -128,14 +128,18 @@ async function checkAllChannels() {
 
 async function sendNotification(channel) {
   sendEvent('live_notify', { platform: channel.platform });
-  const platform = { youtube: 'YouTube', twitch: 'Twitch', twitcasting: 'ツイキャス', showroom: 'SHOWROOM', whowatch: 'ふわっち' }[channel.platform] ?? channel.platform;
+  const platform = {
+    youtube: 'YouTube', twitch: 'Twitch', showroom: 'SHOWROOM',
+    twitcasting: chrome.i18n.getMessage('platformTwitcasting'),
+    whowatch: chrome.i18n.getMessage('platformWhowatch')
+  }[channel.platform] ?? channel.platform;
   const url = getStreamUrl(channel);
   chrome.notifications.create(`live-${channel.id}-${Date.now()}`, {
     type: 'basic',
     iconUrl: chrome.runtime.getURL('icons/icon128.png'),
-    title: `${channel.name} が配信中！`,
-    message: `${platform} でライブ配信が始まりました`,
-    buttons: url ? [{ title: '視聴する' }] : []
+    title: chrome.i18n.getMessage('notifLiveTitle', [channel.name]),
+    message: chrome.i18n.getMessage('notifLiveBody', [platform]),
+    buttons: url ? [{ title: chrome.i18n.getMessage('notifWatch') }] : []
   }, (id) => {
     if (chrome.runtime.lastError) console.error('通知エラー:', chrome.runtime.lastError.message);
   });

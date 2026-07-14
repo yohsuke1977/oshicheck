@@ -1,0 +1,74 @@
+{
+  "extName": { "message": "推し通知 - VTuber/ライバーの配信をまとめて通知" },
+  "extDesc": { "message": "YouTube Live・Twitch・SHOWROOM・ツイキャス・ふわっちの配信開始を、推しごとにまとめて通知。VTuberもライバーも見逃さない無料の配信通知拡張。" },
+  "extShortName": { "message": "推し通知" },
+  "optPageTitle": { "message": "推し通知 設定" },
+
+  "platformTwitcasting": { "message": "ツイキャス" },
+  "platformWhowatch": { "message": "ふわっち" },
+
+  "popupSettings": { "message": "設定" },
+  "popupAddChannel": { "message": "+ チャンネルを追加" },
+  "popupEmptyTitle": { "message": "チャンネルがまだありません" },
+  "popupEmptySub": { "message": "「+ チャンネルを追加」から始めましょう" },
+  "popupLastChecked": {
+    "message": "最終確認: $TIME$",
+    "placeholders": { "time": { "content": "$1" } }
+  },
+
+  "notifLiveTitle": {
+    "message": "$NAME$ が配信中！",
+    "placeholders": { "name": { "content": "$1" } }
+  },
+  "notifLiveBody": {
+    "message": "$PLATFORM$ でライブ配信が始まりました",
+    "placeholders": { "platform": { "content": "$1" } }
+  },
+  "notifWatch": { "message": "視聴する" },
+
+  "optAddChannel": { "message": "チャンネルを追加" },
+  "optPlatform": { "message": "プラットフォーム" },
+  "labelYoutube": { "message": "YouTubeチャンネルURL / @ハンドル" },
+  "phYoutube": { "message": "https://www.youtube.com/@... または UCxxxx" },
+  "labelTwitch": { "message": "Twitchユーザー名" },
+  "phTwitch": { "message": "username" },
+  "labelTwitcasting": { "message": "ツイキャスURL / ユーザーID" },
+  "phTwitcasting": { "message": "https://twitcasting.tv/... または username" },
+  "labelShowroom": { "message": "SHOWROOMルームURL / ルームキー" },
+  "phShowroom": { "message": "https://www.showroom-live.com/... または room_url_key" },
+  "labelWhowatch": { "message": "ふわっちユーザーURL" },
+  "phWhowatch": { "message": "https://whowatch.tv/user/w:xxxxxx" },
+  "btnAdd": { "message": "チャンネルを追加" },
+  "btnRegister": { "message": "登録する" },
+
+  "errEnterQuery": { "message": "URLまたはユーザー名を入力してください" },
+  "statusSearching": { "message": "検索中..." },
+  "errSearchFailed": { "message": "検索に失敗しました" },
+  "errFreeLimit": { "message": "無料プランは5チャンネルまでです" },
+  "errAlreadyAdded": { "message": "このチャンネルはすでに登録済みです" },
+
+  "authLogin": { "message": "ログイン" },
+  "authHint": { "message": "ログインするとチャンネルを複数デバイスで同期できます" },
+  "authEmail": { "message": "メールアドレス" },
+  "authPassword": { "message": "パスワード（6文字以上）" },
+  "btnSignIn": { "message": "ログイン" },
+  "btnSignUp": { "message": "新規登録" },
+  "btnSignOut": { "message": "ログアウト" },
+  "btnManagePlan": { "message": "プランを管理・解約" },
+  "planPro": { "message": "Pro プラン" },
+  "planFree": { "message": "無料プラン" },
+  "authEnterBoth": { "message": "メールアドレスとパスワードを入力してください" },
+  "authProcessing": { "message": "処理中..." },
+  "alertLoginForPro": { "message": "Proプランへのアップグレードにはログインが必要です。" },
+
+  "fbTitle": { "message": "フィードバック" },
+  "fbHint": { "message": "バグ報告・対応プラットフォームのリクエストはこちらから" },
+  "fbSend": { "message": "フィードバックを送る" },
+
+  "listTitle": { "message": "登録チャンネル" },
+  "listEmpty": { "message": "チャンネルが登録されていません" },
+  "upgradeTitle": { "message": "無料プランは5チャンネルまで" },
+  "upgradeDesc": { "message": "Pro版にアップグレードすると無制限に追跡できます" },
+  "btnUpgrade": { "message": "Pro版を見る" },
+  "removeTitle": { "message": "削除" }
+}
