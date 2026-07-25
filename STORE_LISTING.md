@@ -3,7 +3,8 @@
 ストア掲載情報の原本。過去に何度も作り直しているので、ここを唯一の原本にして差分で管理する。
 
 **文字数上限**: 名前 75字 / 短い説明 132字 / 詳細な説明 16,000字
-**短い説明と名前は `_locales/*/messages.json` の `extName`・`extDesc` が原本**（manifestから引かれるのでダッシュボードでは編集しない）。詳細な説明だけダッシュボードに直接貼る。
+**短い説明と名前は `_locales/*/messages.json` の `extName`・`extDesc` が原本**（manifestから引かれるのでダッシュボードでは編集しない）。
+**詳細な説明はパッケージ(zip)のアップロード後に出るフォームに入力する**（コード側には無い。だからここに原本を置く）。
 
 CTAリンクはID直リンクを使う（名前変更に強い）:
 https://chromewebstore.google.com/detail/cplmjepdmjcnojabbcniodaffdoemghg
@@ -30,158 +31,93 @@ v0.2.0では名前を変えていない。CWS内検索がインストールの�
 
 ---
 
-## 3. 詳細な説明（日本語）— ダッシュボードに貼る
+## 3. 詳細な説明（日本語）— パッケージのアップロード後にフォームで入力
+
+**この文章はストアに実際に入っているものをベースにしている**（構成・語り口を変えない方針。
+今のインストールを取れている文章なので、PF追加時は列挙への追記だけに留める）。
+
+v0.2.0での変更は3か所のみ:
+1. 「こんな人におすすめ」のPF列挙に `ニコ生・17LIVE` を追加
+2. 「対応プラットフォーム」に2行追加（ニコ生は**ユーザー生放送のみ対応**なので注記を入れる。
+   チャンネル生放送を登録しようとした人が「動かない」と低評価を付けるのを防ぐため）
+3. 差別化の段落の列挙に `ニコニコ生放送・17LIVE` を追加
 
 ```
-推しの配信、もう見逃さない。
+「推し通知」は、あなたの推し（VTuber・配信者・ライバー）が配信を始めたら、
+プラットフォームを横断してまとめて通知してくれるChrome拡張機能です。
 
-「気づいたら配信が終わっていた」「通知アプリを何個も入れている」
-——複数のサイトで活動する推しを追いかけていると、通知はどうしても取りこぼします。
+■ こんな人におすすめ
+・複数の配信サイトを毎回チェックするのが面倒
+・YouTubeの通知が来なくて配信を見逃してしまう
+・SHOWROOM・ツイキャス・ふわっち・ニコ生・17LIVEの推しの配信開始を逃したくない
+・VTuberも顔出しストリーマーも、まとめて追いたい
 
-「推し通知」は、7つの配信サイトを横断して配信開始を監視し、
-PCのデスクトップ通知でまとめてお知らせするChrome拡張です。
-
-
-▼ 対応プラットフォーム（7サイト）
-
+■ 対応プラットフォーム
 ・YouTube Live
 ・Twitch
-・ツイキャス（TwitCasting）
 ・SHOWROOM
-・ふわっち（WhoWatch）
-・ニコニコ生放送（※ユーザー生放送）
+・ツイキャス（TwitCasting）
+・ふわっち
+・ニコニコ生放送（ユーザー生放送）
 ・17LIVE（イチナナ）
 
-日本のライブ配信サイトにまとめて対応しているのが最大の特徴です。
-海外製の配信通知ツールはTwitchや欧米系サイトのみの対応がほとんどで、
-SHOWROOM・ツイキャス・ニコ生・17LIVEは対象外でした。
+海外製の配信通知ツールは YouTube と Twitch にしか対応していないものがほとんど。
+「推し通知」は SHOWROOM・ツイキャス・ふわっち・ニコニコ生放送・17LIVE といった
+日本の配信・ライバー文化に対応しているのが特徴です。
 
+■ 使い方はかんたん
+1. 推しのチャンネルURLを登録するだけ
+2. 配信が始まると自動で通知＆アイコンに件数バッジ
+3. 通知やポップアップからワンクリックで視聴ページへ
 
-▼ できること
+■ 料金
+・無料で5チャンネルまで登録可能
+・Proプラン（¥480/月）で無制限に登録・追跡
 
-・配信が始まった瞬間にデスクトップ通知が届く
-・通知をクリックすればそのまま視聴ページへ
-・拡張アイコンのバッジで「今何人が配信中か」がひと目でわかる
-・ポップアップで推しの配信状況を一覧表示（配信中が上に並びます）
-・ログインすればチャンネル設定を複数のPCで同期
-・日本語／英語に対応
-
-
-▼ 使い方（3ステップ）
-
-1. Chromeに「推し通知」を追加する
-2. 設定画面で推しのチャンネルURLを貼り付ける
-3. 配信が始まると自動でデスクトップ通知
-
-スマホアプリの通知設定に悩まされることなく、
-PC作業中でも配信開始に気づけます。
-
-
-▼ 料金
-
-・無料プラン：5チャンネルまで登録できます
-・Proプラン（月額480円）：チャンネル数無制限
-
-まずは無料でお試しください。
-
-
-▼ プライバシーについて
-
-・配信状態の確認は当拡張のサーバー経由で行うため、APIキーの設定は不要です
-・視聴履歴の収集は行いません
-・機能の改善のため、匿名の利用状況（起動回数・登録操作の回数など）を収集します
-・詳細はプライバシーポリシーをご確認ください
-
-
-▼ 対応サイトのリクエスト
-
-「このサイトにも対応してほしい」というご要望は、
-設定画面のフィードバックフォームからお送りください。
-
-
-こんな方に使われています：
-VTuberの配信を追いかけている方／複数のライバーを応援している箱推しの方／
-ゲリラ配信を見逃したくない方／PC作業中に配信開始に気づきたい方
+推しの配信を、もう二度と見逃さない。
+「推し通知」で、あなたの“好き”をまとめて追いかけましょう。
 ```
 
----
+## 4. 詳細な説明（英語）
 
-## 4. 詳細な説明（英語）— ダッシュボードに貼る
+⚠️ **現在ストアに入っている英語の詳細説明を未取得**（v0.1.6で登録済みのはずだが原文が手元にない）。
+下記は日本語版と同じ構成で書いた案。実際に入っている英文を確認したうえで、
+日本語と同様に「列挙への追記だけ」の最小差分に切り替えるのが望ましい。
 
 ```
-Never miss your favorite streamer going live again.
+Oshi Alert notifies you the moment your favorite streamer (VTuber, liver,
+or streamer) goes live - across multiple platforms, all in one place.
 
-"I only noticed after the stream ended." "I have too many notification apps."
-When the streamers you follow broadcast across several platforms,
-notifications inevitably slip through.
+■ WHO IT'S FOR
+- Tired of checking several streaming sites over and over
+- YouTube notifications never arrive and you miss the stream
+- You don't want to miss streams on SHOWROOM, TwitCasting, WhoWatch, Niconico or 17LIVE
+- You follow both VTubers and IRL streamers
 
-Oshi Alert watches 7 live streaming platforms at once and sends you
-a single desktop notification the moment a stream starts.
-
-
-▼ SUPPORTED PLATFORMS (7)
-
+■ SUPPORTED PLATFORMS
 - YouTube Live
 - Twitch
-- TwitCasting
 - SHOWROOM
+- TwitCasting
 - WhoWatch
 - Niconico Live (user broadcasts)
 - 17LIVE
 
-Broad support for Japanese streaming platforms is what sets Oshi Alert apart.
-Most live-notification tools cover only Twitch and Western platforms,
-leaving SHOWROOM, TwitCasting, Niconico and 17LIVE unsupported.
+Most live-notification tools only support YouTube and Twitch.
+Oshi Alert covers SHOWROOM, TwitCasting, WhoWatch, Niconico Live and 17LIVE -
+the platforms at the heart of Japan's streaming and liver culture.
 
+■ HOW IT WORKS
+1. Just register your favorite streamer's channel URL
+2. Get a desktop notification and a badge count when they go live
+3. One click from the notification or popup takes you to the stream
 
-▼ FEATURES
+■ PRICING
+- Free: up to 5 channels
+- Pro (JPY 480/month): unlimited channels
 
-- Desktop notification the moment a stream goes live
-- Click the notification to jump straight to the stream
-- Badge on the toolbar icon shows how many of your streamers are live
-- Popup lists all your streamers, with live ones sorted to the top
-- Sign in to sync your channel list across multiple computers
-- Available in English and Japanese
-
-
-▼ HOW IT WORKS
-
-1. Add Oshi Alert to Chrome
-2. Paste your favorite streamer's channel URL in the settings page
-3. Get a desktop notification when they go live
-
-No wrestling with mobile push settings — you'll notice the stream
-even while you're working on your PC.
-
-
-▼ PRICING
-
-- Free: track up to 5 channels
-- Pro (JPY 480 / month): unlimited channels
-
-Start free — no API key required.
-
-
-▼ PRIVACY
-
-- Live status is checked through our own server, so you never need an API key
-- We do not collect your viewing history
-- We collect anonymous usage counts (launches, add-channel actions) to improve the product
-- See our privacy policy for details
-
-
-▼ REQUEST A PLATFORM
-
-Want another streaming site supported?
-Send a request from the feedback form in the settings page.
-
-
-Made for: VTuber fans - people following multiple streamers -
-anyone who hates missing surprise streams - PC users who want to
-catch a stream while working.
+Never miss your favorite streamer again.
 ```
-
----
 
 ## 5. 今後の検討（未実施）
 
