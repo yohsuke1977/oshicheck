@@ -59,7 +59,7 @@ DB・認証:    未実装（将来: Supabase）
 | 4 | SHOWROOM | 非公式・安定 | ✅ 実装済み |
 | 5 | ニコニコ生放送 | 非公式・認証不要 | ✅ 実装済み（ユーザー生放送のみ） |
 | 6 | 17Live | 非公式・認証不要 | ✅ 実装済み |
-| 7 | Pococha | 非公式 | ✗ API認証必須（Issue #12）|
+| 7 | Pococha | 非公式 | ✗ **実装不可**（2026-07-25に実測で確認・Issue #12）|
 | 8 | ふわっち | 非公式 | ✅ 実装済み |
 
 **対象外（当面）**: TikTok Live・Instagram Live → 公式APIなし・ブロック積極的
@@ -78,6 +78,15 @@ DB・認証:    未実装（将来: Supabase）
 - URL形式: `/live/:roomID` `/profile/r/:roomID` `/profile/u/:userID(UUID)`。UUID形式だけ `GET /api/v1/users/<uuid>/info` の `roomID` で解決してから使う。
 - 配信中ライバーの探索（デバッグ用）: `GET /api/v1/search?q=<2文字以上>&region=JP&count=30` が `lives`（配信中）と `accounts` を返す。パラメータ名は `q`（`query`ではない）で `region` 必須。
 - APIホストは `api-dsa` / `wap-api` / `api.17app.co` のいずれでも同じレスポンス。
+
+### Pocochaが実装不可な理由（2026-07-25に実測・再調査不要）
+ニコ生・17LIVEと同じ手法で再検証したが、**Pocochaだけは本当に閉じている**。根拠4点:
+1. **Web版に視聴機能が無い**。`www.pococha.com` はNext.js製のマーケティングサイト（ライバーインタビューとLPのみ）で、配信データを一切持たない。ブラウザ用クライアントが存在しない＝匿名で叩けるWeb APIも存在しない。
+2. `api.pococha.com` は**全パスが `401 Unauthorized`（code 20002）**。17パス試して16が401。通常は公開されている `v1/version` `v1/config` すら401＝ルーティング手前のゲートウェイで全面認証。エンドポイント個別の権限設定ではない。
+3. 唯一401でなかった `v1/users/<id>` は、**IDに何を入れても（`abc`でも）同一の500**を返すだけで情報を返さない。
+4. 共有リンク（`pococha.page.link`）は中身が空のFirebase Dynamic Linksシェルで、OGPも配信状態も持たない。
+- 補強材料: 日本の18PFを集約している live-ranking.com が**Pocochaだけ対象外**にしている。
+- 唯一の突破口はアプリのトークン取得だが、端末/アカウント登録とアプリのなりすましが必要でToS違反。トークンローテーションや端末アテステーションで壊れやすくもあり、**やらない**。
 
 ---
 
