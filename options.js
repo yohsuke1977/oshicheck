@@ -1,5 +1,5 @@
 const API_BASE = 'https://oshicheck.vercel.app';
-const PLATFORM_LABEL = { youtube: 'YouTube', twitch: 'Twitch', twitcasting: t('platformTwitcasting'), showroom: 'SHOWROOM', whowatch: t('platformWhowatch') };
+const PLATFORM_LABEL = { youtube: 'YouTube', twitch: 'Twitch', twitcasting: t('platformTwitcasting'), showroom: 'SHOWROOM', whowatch: t('platformWhowatch'), niconico: t('platformNiconico') };
 const FREE_LIMIT = 5;
 
 async function getChannelLimit() {
@@ -115,7 +115,7 @@ function setupPlatformSwitch() {
     r.addEventListener('change', () => {
       const label = document.getElementById('inputLabel');
       const input = document.getElementById('channelInput');
-      const key = { youtube: 'Youtube', twitch: 'Twitch', twitcasting: 'Twitcasting', showroom: 'Showroom', whowatch: 'Whowatch' }[r.value];
+      const key = { youtube: 'Youtube', twitch: 'Twitch', twitcasting: 'Twitcasting', showroom: 'Showroom', whowatch: 'Whowatch', niconico: 'Niconico' }[r.value];
       label.textContent = t(`label${key}`);
       input.placeholder = t(`ph${key}`);
       hidePreview();

@@ -66,6 +66,7 @@ async function checkAllChannels() {
   const twitcastingIds  = idsFor('twitcasting');
   const showroomKeys    = idsFor('showroom');
   const whowatchPaths   = idsFor('whowatch');
+  const niconicoIds     = idsFor('niconico');
 
   try {
     const params = new URLSearchParams();
@@ -74,6 +75,7 @@ async function checkAllChannels() {
     if (twitcastingIds.length) params.set('twitcasting', twitcastingIds.join(','));
     if (showroomKeys.length)   params.set('showroom', showroomKeys.join(','));
     if (whowatchPaths.length)  params.set('whowatch', whowatchPaths.join(','));
+    if (niconicoIds.length)    params.set('niconico', niconicoIds.join(','));
 
     const res = await fetch(`${API_BASE}/api/status?${params}`, {
       headers: { 'x-oshi-key': EXT_SHARED_KEY }
@@ -96,6 +98,15 @@ async function checkAllChannels() {
         if (s) { ch.isLive = s.isLive; ch.lastChecked = Date.now(); }
       } else if (ch.platform === 'whowatch') {
         const s = data.whowatch?.[ch.channelId];
+        if (s) {
+          ch.isLive = s.isLive;
+          ch.liveId = s.liveId;
+          ch.lastChecked = Date.now();
+          if (s.name && s.name !== ch.channelId) ch.name = s.name;
+          if (s.thumbnail) ch.thumbnail = s.thumbnail;
+        }
+      } else if (ch.platform === 'niconico') {
+        const s = data.niconico?.[ch.channelId];
         if (s) {
           ch.isLive = s.isLive;
           ch.liveId = s.liveId;
@@ -131,7 +142,8 @@ async function sendNotification(channel) {
   const platform = {
     youtube: 'YouTube', twitch: 'Twitch', showroom: 'SHOWROOM',
     twitcasting: chrome.i18n.getMessage('platformTwitcasting'),
-    whowatch: chrome.i18n.getMessage('platformWhowatch')
+    whowatch: chrome.i18n.getMessage('platformWhowatch'),
+    niconico: chrome.i18n.getMessage('platformNiconico')
   }[channel.platform] ?? channel.platform;
   const url = getStreamUrl(channel);
   chrome.notifications.create(`live-${channel.id}-${Date.now()}`, {
@@ -162,6 +174,10 @@ function getStreamUrl(channel) {
   if (channel.platform === 'whowatch') {
     if (channel.liveId) return `https://whowatch.tv/viewer/${channel.liveId}`;
     return `https://whowatch.tv/user/${channel.channelId}`;
+  }
+  if (channel.platform === 'niconico') {
+    if (channel.liveId) return `https://live.nicovideo.jp/watch/${channel.liveId}`;
+    return `https://www.nicovideo.jp/user/${channel.channelId}`;
   }
   return null;
 }

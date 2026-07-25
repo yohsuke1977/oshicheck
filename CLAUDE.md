@@ -57,12 +57,19 @@ DB・認証:    未実装（将来: Supabase）
 | 2 | Twitch | 公式（Helix API） | ✅ MVP実装済み |
 | 3 | ツイキャス | 公式あり | ✅ 実装済み |
 | 4 | SHOWROOM | 非公式・安定 | ✅ 実装済み |
-| 5 | ニコニコ生放送 | 公式(一部) | ✗ API認証必須で実装不可 |
+| 5 | ニコニコ生放送 | 非公式・認証不要 | ✅ 実装済み（ユーザー生放送のみ） |
 | 6 | 17Live | 非公式 | ✗ API認証必須（Issue #11）|
 | 7 | Pococha | 非公式 | ✗ API認証必須（Issue #12）|
 | 8 | ふわっち | 非公式 | ✅ 実装済み |
 
 **対象外（当面）**: TikTok Live・Instagram Live → 公式APIなし・ブロック積極的
+
+### ニコニコ生放送の実装メモ（2026-07-25）
+- 状態取得: `GET https://live.nicovideo.jp/front/api/v2/user-broadcast-history?providerId=<userId>&providerType=user&isIncludeNonPublic=false&offset=0&limit=5&withTotalCount=false`（**認証不要**）。`programsList[].program.schedule.status === 'ON_AIR'` で判定し、その番組の `id.value`（lvID）を視聴URLに使う。予約番組が先頭に来て配信中を隠すことがあるため先頭1件ではなく数件見る。
+- lv → 配信者の逆引き: `GET https://api.cas.nicovideo.jp/v1/services/live/programs/<lvID>`（認証不要・`providerType` / `providerId` / `liveCycle` が返る）。
+- 追跡単位は **ユーザーID（providerId）**。ニコ生はコミュニティ紐付けを廃止済みで `socialGroupId` は `co0` 固定のため、コミュニティIDは使えない。
+- **チャンネル生放送（`ch` 始まり）は非対応**。配信履歴APIが `providerType=official` で引けるものの ON_AIR を返さず常に `RELEASED` になり、配信中を判定できない（cas API では `on_air` と出るので齟齬がある）。`api/channel-info.js` の追加時点で明示的に弾いている。
+- 旧 `https://live2.nicovideo.jp/watch/<lv>/programinfo` は 401。「API認証必須」はここだけの話で、上記の経路なら認証不要（かつてCLAUDE.mdに「実装不可」と書いていたのは誤り）。
 
 ---
 
@@ -78,10 +85,10 @@ DB・認証:    未実装（将来: Supabase）
 ---
 
 ## ステータス
-2026年6月 Chrome Web Store公開中（v0.1.2）
+2026年7月 Chrome Web Store公開中（v0.1.6）／v0.1.7 提出準備中
 
 **完成済み機能**
-- YouTube / Twitch / ツイキャス / SHOWROOM / ふわっち 対応
+- YouTube / Twitch / ツイキャス / SHOWROOM / ふわっち / ニコニコ生放送 対応
 - Firebase認証・Firestoreチャンネル同期
 - フリーミアム（無料5チャンネル・Pro ¥480/月）
 - Stripe決済（本番モード稼働中）

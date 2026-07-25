@@ -1,4 +1,4 @@
-const PLATFORM_LABEL = { youtube: 'YouTube', twitch: 'Twitch', twitcasting: t('platformTwitcasting'), showroom: 'SHOWROOM', whowatch: t('platformWhowatch') };
+const PLATFORM_LABEL = { youtube: 'YouTube', twitch: 'Twitch', twitcasting: t('platformTwitcasting'), showroom: 'SHOWROOM', whowatch: t('platformWhowatch'), niconico: t('platformNiconico') };
 
 document.getElementById('settingsBtn').addEventListener('click', () => {
   chrome.runtime.openOptionsPage();
@@ -91,6 +91,10 @@ function getStreamUrl(channel) {
   if (channel.platform === 'whowatch') {
     if (channel.liveId) return `https://whowatch.tv/viewer/${channel.liveId}`;
     return `https://whowatch.tv/user/${channel.channelId}`;
+  }
+  if (channel.platform === 'niconico') {
+    if (channel.liveId) return `https://live.nicovideo.jp/watch/${channel.liveId}`;
+    return `https://www.nicovideo.jp/user/${channel.channelId}`;
   }
   return null;
 }

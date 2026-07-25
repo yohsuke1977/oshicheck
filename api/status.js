@@ -1,4 +1,4 @@
-// GET /api/status?youtube=UCxxx,UCyyy&twitch=user1,user2&twitcasting=user1,user2&showroom=key1,key2&whowatch=path1,path2
+// GET /api/status?youtube=UCxxx,UCyyy&twitch=user1,user2&twitcasting=user1,user2&showroom=key1,key2&whowatch=path1,path2&niconico=userId1,userId2
 // 各チャンネルのライブ状態を返す。
 //
 // B1第3層（コスト脱ユーザー数依存）: Upstashが設定されていれば、生存状態をRedisに
@@ -16,6 +16,7 @@ const OFFLINE = {
   youtube:     { isLive: false, videoId: null },
   twitch:      { isLive: false },
   twitcasting: { isLive: false, movieId: null },
+  niconico:    { isLive: false, liveId: null },
 };
 
 let twitchTokenCache = null;
@@ -31,13 +32,14 @@ module.exports = async function handler(req, res) {
     return res.status(403).json({ error: 'forbidden' });
   }
 
-  const { youtube, twitch, twitcasting, showroom, whowatch } = req.query;
+  const { youtube, twitch, twitcasting, showroom, whowatch, niconico } = req.query;
   const ids = {
     youtube:     split(youtube),
     twitch:      split(twitch),
     twitcasting: split(twitcasting),
     showroom:    split(showroom),
     whowatch:    split(whowatch),
+    niconico:    split(niconico),
   };
   const result = {};
   const redis = getRedis();
@@ -48,6 +50,7 @@ module.exports = async function handler(req, res) {
       if (ids.youtube.length)     result.youtube     = await cachedPerChannel(redis, 'yt', ids.youtube, fetchYouTube, OFFLINE.youtube);
       if (ids.twitch.length)      result.twitch      = await cachedPerChannel(redis, 'tw', ids.twitch, fetchTwitch, OFFLINE.twitch);
       if (ids.twitcasting.length) result.twitcasting = await cachedPerChannel(redis, 'tc', ids.twitcasting, fetchTwitcasting, OFFLINE.twitcasting);
+      if (ids.niconico.length)    result.niconico    = await cachedPerChannel(redis, 'nc', ids.niconico, fetchNiconico, OFFLINE.niconico);
       // SHOWROOM/ふわっちは1フェッチで全ライブ一覧が返る → 一覧を丸ごと1キーにキャッシュ（定数コスト）
       if (ids.showroom.length)    result.showroom    = buildShowroom(await cachedShared(redis, 'sr:onlives', fetchShowroomLiveSet), ids.showroom);
       if (ids.whowatch.length)    result.whowatch    = buildWhowatch(await cachedShared(redis, 'ww:onlives', fetchWhowatchLiveMap), ids.whowatch);
@@ -60,6 +63,7 @@ module.exports = async function handler(req, res) {
       if (ids.youtube.length)     result.youtube     = await fetchYouTube(ids.youtube);
       if (ids.twitch.length)      result.twitch      = await fetchTwitch(ids.twitch);
       if (ids.twitcasting.length) result.twitcasting = await fetchTwitcasting(ids.twitcasting);
+      if (ids.niconico.length)    result.niconico    = await fetchNiconico(ids.niconico);
       if (ids.showroom.length)    result.showroom    = buildShowroom(await fetchShowroomLiveSet(), ids.showroom);
       if (ids.whowatch.length)    result.whowatch    = buildWhowatch(await fetchWhowatchLiveMap(), ids.whowatch);
       res.setHeader('Cache-Control', 's-maxage=240, stale-while-revalidate=120');
@@ -208,6 +212,50 @@ async function fetchTwitcasting(userIds) {
       };
     } catch (e) {
       result[userId] = { isLive: false, movieId: null };
+    }
+  }
+  return result;
+}
+
+// ニコニコ生放送（ユーザー生放送のみ）: ユーザーの配信履歴APIの直近数件を見る。
+// 公式のwatchページ用フロントAPIで、認証なしで叩ける（旧 live2 の programinfo は401）。
+// ニコ生はコミュニティ紐付けを廃止済みで socialGroupId は co0 固定 → 配信者の実体は
+// providerId（ユーザーID）。よってチャンネル単位キャッシュ（'nc:'）に載せる。
+//
+// 対象外: チャンネル生放送（providerId が ch 始まり）。このAPIは ON_AIR を返さず
+// 常に RELEASED を返すため配信中を判定できない。channel-info 側で追加を弾いている。
+async function fetchNiconico(userIds) {
+  const result = {};
+  for (const userId of userIds) {
+    try {
+      const params = new URLSearchParams({
+        providerId: userId,
+        providerType: 'user',
+        isIncludeNonPublic: 'false',
+        offset: '0',
+        // 予約番組が先頭に来て配信中を隠すことがあるので数件見る
+        limit: '5',
+        withTotalCount: 'false',
+      });
+      const res = await fetch(
+        `https://live.nicovideo.jp/front/api/v2/user-broadcast-history?${params}`,
+        { headers: { 'User-Agent': 'Mozilla/5.0' } }
+      );
+      const data = await res.json();
+      const list = data?.data?.programsList ?? [];
+      // 配信履歴が空（一度も放送していない）＝オフライン扱い
+      if (!list.length) { result[userId] = { isLive: false, liveId: null }; continue; }
+
+      const onAir = list.find(p => p.program?.schedule?.status === 'ON_AIR');
+      const provider = (onAir ?? list[0]).programProvider;
+      result[userId] = {
+        isLive: Boolean(onAir),
+        liveId: onAir?.id?.value ?? null,
+        name: provider?.name || undefined,
+        thumbnail: provider?.icons?.uri50x50 || undefined,
+      };
+    } catch (e) {
+      result[userId] = { isLive: false, liveId: null };
     }
   }
   return result;

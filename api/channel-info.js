@@ -2,6 +2,7 @@
 // GET /api/channel-info?platform=twitch&q=username
 // GET /api/channel-info?platform=twitcasting&q=username
 // GET /api/channel-info?platform=showroom&q=room_url_key or URL
+// GET /api/channel-info?platform=niconico&q=https://www.nicovideo.jp/user/123 or lv URL or userId
 // Returns: { channelId, name, thumbnail }
 
 let twitchTokenCache = null;
@@ -27,6 +28,7 @@ module.exports = async function handler(req, res) {
     else if (platform === 'twitcasting')  info = await lookupTwitcasting(q);
     else if (platform === 'showroom')     info = await lookupShowroom(q);
     else if (platform === 'whowatch')     info = await lookupWhowatch(q);
+    else if (platform === 'niconico')     info = await lookupNiconico(q);
     else return res.status(400).json({ error: 'Invalid platform' });
 
     res.json(info);
@@ -162,6 +164,83 @@ async function lookupWhowatch(input) {
   } catch (e) {}
 
   return { channelId: userPath, name: userPath, thumbnail: '' };
+}
+
+// ニコニコ生放送: 追跡単位はユーザーID（providerId）。
+// 受け付ける入力: ユーザーページURL / 生放送URL(lv) / 生ID。
+// 生放送URLの場合は cas API（認証不要）で lv → providerId を逆引きする。
+//
+// ユーザー生放送のみ対応。チャンネル生放送（providerId が ch 始まり）は配信履歴APIが
+// ON_AIR を返さず常に RELEASED になり配信中を判定できないため、追加時点で明示的に弾く。
+async function lookupNiconico(input) {
+  const s = String(input).trim();
+  let userId = null;
+
+  const lvMatch = s.match(/(lv\d+)/);
+  if (lvMatch) {
+    const res = await fetch(`https://api.cas.nicovideo.jp/v1/services/live/programs/${lvMatch[1]}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    });
+    const data = await res.json();
+    if (data?.data?.providerType !== 'user' || !data?.data?.providerId) {
+      throw new Error('チャンネル生放送・公式番組は追跡に対応していません。ユーザー生放送のURLを入力してください');
+    }
+    userId = String(data.data.providerId);
+  } else {
+    if (/ch\.nicovideo\.jp|(?:^|\/)ch\d+/.test(s)) {
+      throw new Error('チャンネル生放送・公式番組は追跡に対応していません。ユーザー生放送のURLを入力してください');
+    }
+    const userMatch = s.match(/nicovideo\.jp\/user\/(\d+)/) || s.match(/^(\d+)$/);
+    if (!userMatch) {
+      throw new Error('ニコニコのユーザーページURL（https://www.nicovideo.jp/user/12345）または生放送URLを入力してください');
+    }
+    userId = userMatch[1];
+  }
+
+  // 名前・アイコンは配信履歴APIから取得（放送実績があれば1リクエストで揃う）
+  const params = new URLSearchParams({
+    providerId: userId, providerType: 'user',
+    isIncludeNonPublic: 'false', offset: '0', limit: '1', withTotalCount: 'false',
+  });
+  const histRes = await fetch(
+    `https://live.nicovideo.jp/front/api/v2/user-broadcast-history?${params}`,
+    { headers: { 'User-Agent': 'Mozilla/5.0' } }
+  );
+  const hist = await histRes.json();
+  const provider = hist?.data?.programsList?.[0]?.programProvider;
+  if (provider?.name) {
+    return {
+      channelId: userId,
+      name: provider.name,
+      thumbnail: provider.icons?.uri50x50 || ''
+    };
+  }
+
+  // 放送履歴が無いユーザーはユーザーページから名前・アイコンを取る
+  const pageRes = await fetch(`https://www.nicovideo.jp/user/${userId}`, {
+    headers: { 'User-Agent': 'Mozilla/5.0' }
+  });
+  if (!pageRes.ok) throw new Error('ユーザーが見つかりませんでした');
+  const html = await pageRes.text();
+  const m = html.match(/data-initial-data="([^"]+)"/);
+  if (m) {
+    try {
+      const u = JSON.parse(decodeHtmlEntities(m[1]))?.state?.userDetails?.user;
+      if (u?.nickname) {
+        return { channelId: userId, name: u.nickname, thumbnail: u.icons?.small || '' };
+      }
+    } catch (e) {}
+  }
+  return { channelId: userId, name: `user/${userId}`, thumbnail: '' };
+}
+
+function decodeHtmlEntities(s) {
+  return s
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');
 }
 
 async function lookupTwitcasting(input) {

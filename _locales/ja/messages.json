@@ -6,6 +6,7 @@
 
   "platformTwitcasting": { "message": "ツイキャス" },
   "platformWhowatch": { "message": "ふわっち" },
+  "platformNiconico": { "message": "ニコニコ生放送" },
 
   "popupSettings": { "message": "設定" },
   "popupAddChannel": { "message": "+ チャンネルを追加" },
@@ -38,6 +39,8 @@
   "phShowroom": { "message": "https://www.showroom-live.com/... または room_url_key" },
   "labelWhowatch": { "message": "ふわっちユーザーURL" },
   "phWhowatch": { "message": "https://whowatch.tv/user/w:xxxxxx" },
+  "labelNiconico": { "message": "ニコニコ ユーザーページURL / 生放送URL" },
+  "phNiconico": { "message": "https://www.nicovideo.jp/user/12345678" },
   "btnAdd": { "message": "チャンネルを追加" },
   "btnRegister": { "message": "登録する" },
 

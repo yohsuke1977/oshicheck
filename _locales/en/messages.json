@@ -6,6 +6,7 @@
 
   "platformTwitcasting": { "message": "TwitCasting" },
   "platformWhowatch": { "message": "WhoWatch" },
+  "platformNiconico": { "message": "Niconico Live" },
 
   "popupSettings": { "message": "Settings" },
   "popupAddChannel": { "message": "+ Add channel" },
@@ -38,6 +39,8 @@
   "phShowroom": { "message": "https://www.showroom-live.com/... or room_url_key" },
   "labelWhowatch": { "message": "WhoWatch user URL" },
   "phWhowatch": { "message": "https://whowatch.tv/user/w:xxxxxx" },
+  "labelNiconico": { "message": "Niconico user page URL / live URL" },
+  "phNiconico": { "message": "https://www.nicovideo.jp/user/12345678" },
   "btnAdd": { "message": "Add channel" },
   "btnRegister": { "message": "Add" },
 
