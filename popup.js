@@ -1,4 +1,4 @@
-const PLATFORM_LABEL = { youtube: 'YouTube', twitch: 'Twitch', twitcasting: t('platformTwitcasting'), showroom: 'SHOWROOM', whowatch: t('platformWhowatch'), niconico: t('platformNiconico') };
+const PLATFORM_LABEL = { youtube: 'YouTube', twitch: 'Twitch', twitcasting: t('platformTwitcasting'), showroom: 'SHOWROOM', whowatch: t('platformWhowatch'), niconico: t('platformNiconico'), '17live': '17LIVE' };
 
 document.getElementById('settingsBtn').addEventListener('click', () => {
   chrome.runtime.openOptionsPage();
@@ -95,6 +95,9 @@ function getStreamUrl(channel) {
   if (channel.platform === 'niconico') {
     if (channel.liveId) return `https://live.nicovideo.jp/watch/${channel.liveId}`;
     return `https://www.nicovideo.jp/user/${channel.channelId}`;
+  }
+  if (channel.platform === '17live') {
+    return `https://17.live/ja/live/${channel.channelId}`;
   }
   return null;
 }

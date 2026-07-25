@@ -58,7 +58,7 @@ DB・認証:    未実装（将来: Supabase）
 | 3 | ツイキャス | 公式あり | ✅ 実装済み |
 | 4 | SHOWROOM | 非公式・安定 | ✅ 実装済み |
 | 5 | ニコニコ生放送 | 非公式・認証不要 | ✅ 実装済み（ユーザー生放送のみ） |
-| 6 | 17Live | 非公式 | ✗ API認証必須（Issue #11）|
+| 6 | 17Live | 非公式・認証不要 | ✅ 実装済み |
 | 7 | Pococha | 非公式 | ✗ API認証必須（Issue #12）|
 | 8 | ふわっち | 非公式 | ✅ 実装済み |
 
@@ -70,6 +70,14 @@ DB・認証:    未実装（将来: Supabase）
 - 追跡単位は **ユーザーID（providerId）**。ニコ生はコミュニティ紐付けを廃止済みで `socialGroupId` は `co0` 固定のため、コミュニティIDは使えない。
 - **チャンネル生放送（`ch` 始まり）は非対応**。配信履歴APIが `providerType=official` で引けるものの ON_AIR を返さず常に `RELEASED` になり、配信中を判定できない（cas API では `on_air` と出るので齟齬がある）。`api/channel-info.js` の追加時点で明示的に弾いている。
 - 旧 `https://live2.nicovideo.jp/watch/<lv>/programinfo` は 401。「API認証必須」はここだけの話で、上記の経路なら認証不要（かつてCLAUDE.mdに「実装不可」と書いていたのは誤り）。
+
+### 17LIVEの実装メモ（2026-07-25）
+- 状態取得: `GET https://api-dsa.17app.co/api/v1/lives/<roomID>`（**認証不要**）。`status` は実測で **2=配信中 / 0=オフライン**（検索APIの配信中一覧30件と非配信ユーザーを突き合わせて検証）。存在しない roomID は HTTP 520 + `{"errorMessage":"stream not found"}`。
+- このAPI1本で状態・配信者名（`userInfo.displayName` / `openID`）・アイコン（`userInfo.picture` → `https://cdn.17app.co/<picture>`）が全部取れるので、status と channel-info の両方で使っている。
+- 追跡単位は **roomID**（数値・ユーザーごとに固定。配信中は `liveStreamID` と一致）。`userID` はUUIDで別物。
+- URL形式: `/live/:roomID` `/profile/r/:roomID` `/profile/u/:userID(UUID)`。UUID形式だけ `GET /api/v1/users/<uuid>/info` の `roomID` で解決してから使う。
+- 配信中ライバーの探索（デバッグ用）: `GET /api/v1/search?q=<2文字以上>&region=JP&count=30` が `lives`（配信中）と `accounts` を返す。パラメータ名は `q`（`query`ではない）で `region` 必須。
+- APIホストは `api-dsa` / `wap-api` / `api.17app.co` のいずれでも同じレスポンス。
 
 ---
 
@@ -85,10 +93,10 @@ DB・認証:    未実装（将来: Supabase）
 ---
 
 ## ステータス
-2026年7月 Chrome Web Store公開中（v0.1.6）／v0.1.7 提出準備中
+2026年7月 Chrome Web Store公開中（v0.1.6）／v0.1.8 提出準備中
 
 **完成済み機能**
-- YouTube / Twitch / ツイキャス / SHOWROOM / ふわっち / ニコニコ生放送 対応
+- YouTube / Twitch / ツイキャス / SHOWROOM / ふわっち / ニコニコ生放送 / 17LIVE 対応
 - Firebase認証・Firestoreチャンネル同期
 - フリーミアム（無料5チャンネル・Pro ¥480/月）
 - Stripe決済（本番モード稼働中）

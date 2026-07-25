@@ -7,6 +7,7 @@
   "platformTwitcasting": { "message": "TwitCasting" },
   "platformWhowatch": { "message": "WhoWatch" },
   "platformNiconico": { "message": "Niconico Live" },
+  "platform17live": { "message": "17LIVE" },
 
   "popupSettings": { "message": "Settings" },
   "popupAddChannel": { "message": "+ Add channel" },
@@ -41,6 +42,8 @@
   "phWhowatch": { "message": "https://whowatch.tv/user/w:xxxxxx" },
   "labelNiconico": { "message": "Niconico user page URL / live URL" },
   "phNiconico": { "message": "https://www.nicovideo.jp/user/12345678" },
+  "labelSeventeen": { "message": "17LIVE live URL / profile URL" },
+  "phSeventeen": { "message": "https://17.live/ja/live/1234567" },
   "btnAdd": { "message": "Add channel" },
   "btnRegister": { "message": "Add" },
 

@@ -67,6 +67,7 @@ async function checkAllChannels() {
   const showroomKeys    = idsFor('showroom');
   const whowatchPaths   = idsFor('whowatch');
   const niconicoIds     = idsFor('niconico');
+  const seventeenRooms  = idsFor('17live');
 
   try {
     const params = new URLSearchParams();
@@ -76,6 +77,7 @@ async function checkAllChannels() {
     if (showroomKeys.length)   params.set('showroom', showroomKeys.join(','));
     if (whowatchPaths.length)  params.set('whowatch', whowatchPaths.join(','));
     if (niconicoIds.length)    params.set('niconico', niconicoIds.join(','));
+    if (seventeenRooms.length) params.set('17live', seventeenRooms.join(','));
 
     const res = await fetch(`${API_BASE}/api/status?${params}`, {
       headers: { 'x-oshi-key': EXT_SHARED_KEY }
@@ -114,6 +116,14 @@ async function checkAllChannels() {
           if (s.name && s.name !== ch.channelId) ch.name = s.name;
           if (s.thumbnail) ch.thumbnail = s.thumbnail;
         }
+      } else if (ch.platform === '17live') {
+        const s = data['17live']?.[ch.channelId];
+        if (s) {
+          ch.isLive = s.isLive;
+          ch.lastChecked = Date.now();
+          if (s.name && s.name !== ch.channelId) ch.name = s.name;
+          if (s.thumbnail) ch.thumbnail = s.thumbnail;
+        }
       }
     }
   } catch (e) {
@@ -143,7 +153,8 @@ async function sendNotification(channel) {
     youtube: 'YouTube', twitch: 'Twitch', showroom: 'SHOWROOM',
     twitcasting: chrome.i18n.getMessage('platformTwitcasting'),
     whowatch: chrome.i18n.getMessage('platformWhowatch'),
-    niconico: chrome.i18n.getMessage('platformNiconico')
+    niconico: chrome.i18n.getMessage('platformNiconico'),
+    '17live': '17LIVE'
   }[channel.platform] ?? channel.platform;
   const url = getStreamUrl(channel);
   chrome.notifications.create(`live-${channel.id}-${Date.now()}`, {
@@ -178,6 +189,9 @@ function getStreamUrl(channel) {
   if (channel.platform === 'niconico') {
     if (channel.liveId) return `https://live.nicovideo.jp/watch/${channel.liveId}`;
     return `https://www.nicovideo.jp/user/${channel.channelId}`;
+  }
+  if (channel.platform === '17live') {
+    return `https://17.live/ja/live/${channel.channelId}`;
   }
   return null;
 }

@@ -1,4 +1,4 @@
-// GET /api/status?youtube=UCxxx,UCyyy&twitch=user1,user2&twitcasting=user1,user2&showroom=key1,key2&whowatch=path1,path2&niconico=userId1,userId2
+// GET /api/status?youtube=UCxxx,UCyyy&twitch=user1,user2&twitcasting=user1,user2&showroom=key1,key2&whowatch=path1,path2&niconico=userId1,userId2&17live=roomId1,roomId2
 // 各チャンネルのライブ状態を返す。
 //
 // B1第3層（コスト脱ユーザー数依存）: Upstashが設定されていれば、生存状態をRedisに
@@ -17,6 +17,7 @@ const OFFLINE = {
   twitch:      { isLive: false },
   twitcasting: { isLive: false, movieId: null },
   niconico:    { isLive: false, liveId: null },
+  '17live':    { isLive: false },
 };
 
 let twitchTokenCache = null;
@@ -40,6 +41,8 @@ module.exports = async function handler(req, res) {
     showroom:    split(showroom),
     whowatch:    split(whowatch),
     niconico:    split(niconico),
+    // 先頭が数字のためプロパティ名として分割代入できない
+    '17live':    split(req.query['17live']),
   };
   const result = {};
   const redis = getRedis();
@@ -51,6 +54,7 @@ module.exports = async function handler(req, res) {
       if (ids.twitch.length)      result.twitch      = await cachedPerChannel(redis, 'tw', ids.twitch, fetchTwitch, OFFLINE.twitch);
       if (ids.twitcasting.length) result.twitcasting = await cachedPerChannel(redis, 'tc', ids.twitcasting, fetchTwitcasting, OFFLINE.twitcasting);
       if (ids.niconico.length)    result.niconico    = await cachedPerChannel(redis, 'nc', ids.niconico, fetchNiconico, OFFLINE.niconico);
+      if (ids['17live'].length)   result['17live']   = await cachedPerChannel(redis, 'sl', ids['17live'], fetch17Live, OFFLINE['17live']);
       // SHOWROOM/ふわっちは1フェッチで全ライブ一覧が返る → 一覧を丸ごと1キーにキャッシュ（定数コスト）
       if (ids.showroom.length)    result.showroom    = buildShowroom(await cachedShared(redis, 'sr:onlives', fetchShowroomLiveSet), ids.showroom);
       if (ids.whowatch.length)    result.whowatch    = buildWhowatch(await cachedShared(redis, 'ww:onlives', fetchWhowatchLiveMap), ids.whowatch);
@@ -64,6 +68,7 @@ module.exports = async function handler(req, res) {
       if (ids.twitch.length)      result.twitch      = await fetchTwitch(ids.twitch);
       if (ids.twitcasting.length) result.twitcasting = await fetchTwitcasting(ids.twitcasting);
       if (ids.niconico.length)    result.niconico    = await fetchNiconico(ids.niconico);
+      if (ids['17live'].length)   result['17live']   = await fetch17Live(ids['17live']);
       if (ids.showroom.length)    result.showroom    = buildShowroom(await fetchShowroomLiveSet(), ids.showroom);
       if (ids.whowatch.length)    result.whowatch    = buildWhowatch(await fetchWhowatchLiveMap(), ids.whowatch);
       res.setHeader('Cache-Control', 's-maxage=240, stale-while-revalidate=120');
@@ -256,6 +261,33 @@ async function fetchNiconico(userIds) {
       };
     } catch (e) {
       result[userId] = { isLive: false, liveId: null };
+    }
+  }
+  return result;
+}
+
+// 17Live: 追跡単位は roomID（ユーザーごとに固定の数値。配信中は liveStreamID と一致）。
+// api-dsa.17app.co は認証不要で叩ける。status は実測で 2=配信中 / 0=オフライン
+// （配信中30件と非配信ユーザーの突き合わせで検証済み・2026-07-25）。
+// 存在しない roomID は HTTP 520 + {"errorMessage":"stream not found"} を返す。
+async function fetch17Live(roomIds) {
+  const result = {};
+  for (const roomId of roomIds) {
+    try {
+      const res = await fetch(`https://api-dsa.17app.co/api/v1/lives/${encodeURIComponent(roomId)}`, {
+        headers: { 'User-Agent': 'Mozilla/5.0' }
+      });
+      const data = await res.json();
+      if (!res.ok || data?.errorMessage) { result[roomId] = { isLive: false }; continue; }
+
+      const u = data.userInfo || {};
+      result[roomId] = {
+        isLive: data.status === 2,
+        name: u.displayName || u.openID || undefined,
+        thumbnail: u.picture ? `https://cdn.17app.co/${u.picture}` : undefined,
+      };
+    } catch (e) {
+      result[roomId] = { isLive: false };
     }
   }
   return result;

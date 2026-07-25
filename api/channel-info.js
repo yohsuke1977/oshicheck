@@ -3,6 +3,7 @@
 // GET /api/channel-info?platform=twitcasting&q=username
 // GET /api/channel-info?platform=showroom&q=room_url_key or URL
 // GET /api/channel-info?platform=niconico&q=https://www.nicovideo.jp/user/123 or lv URL or userId
+// GET /api/channel-info?platform=17live&q=https://17.live/ja/live/1234567 or profile URL or roomID
 // Returns: { channelId, name, thumbnail }
 
 let twitchTokenCache = null;
@@ -29,6 +30,7 @@ module.exports = async function handler(req, res) {
     else if (platform === 'showroom')     info = await lookupShowroom(q);
     else if (platform === 'whowatch')     info = await lookupWhowatch(q);
     else if (platform === 'niconico')     info = await lookupNiconico(q);
+    else if (platform === '17live')       info = await lookup17Live(q);
     else return res.status(400).json({ error: 'Invalid platform' });
 
     res.json(info);
@@ -232,6 +234,48 @@ async function lookupNiconico(input) {
     } catch (e) {}
   }
   return { channelId: userId, name: `user/${userId}`, thumbnail: '' };
+}
+
+// 17Live: 追跡単位は roomID（数値・ユーザーごとに固定）。
+// 受け付ける入力: /live/<roomID> ・ /profile/r/<roomID> ・ /profile/u/<userID(UUID)> ・ 生のroomID。
+// UUID形式のプロフィールURLだけは users/<uuid>/info で roomID に解決してから使う。
+async function lookup17Live(input) {
+  const s = String(input).trim();
+  let roomId = null;
+
+  const uuidMatch = s.match(/\/profile\/u\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i);
+  if (uuidMatch) {
+    const res = await fetch(`https://api-dsa.17app.co/api/v1/users/${uuidMatch[1]}/info`, {
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    });
+    const data = await res.json();
+    if (!data?.roomID) throw new Error('ユーザーが見つかりませんでした');
+    roomId = String(data.roomID);
+  } else {
+    const m = s.match(/17\.live\/[^/]+\/live\/(\d+)/)
+           || s.match(/17\.live\/[^/]+\/profile\/r\/(\d+)/)
+           || s.match(/^(\d+)$/);
+    if (!m) {
+      throw new Error('17LiveのライブURL（https://17.live/ja/live/1234567）またはプロフィールURLを入力してください');
+    }
+    roomId = m[1];
+  }
+
+  // ライブ情報APIから配信者名・アイコンを取得（配信中でなくても部屋があれば返る）
+  const res = await fetch(`https://api-dsa.17app.co/api/v1/lives/${roomId}`, {
+    headers: { 'User-Agent': 'Mozilla/5.0' }
+  });
+  const data = await res.json();
+  if (!res.ok || data?.errorMessage || !data?.userInfo) {
+    throw new Error('配信者が見つかりませんでした');
+  }
+
+  const u = data.userInfo;
+  return {
+    channelId: roomId,
+    name: u.displayName || u.openID || roomId,
+    thumbnail: u.picture ? `https://cdn.17app.co/${u.picture}` : ''
+  };
 }
 
 function decodeHtmlEntities(s) {
