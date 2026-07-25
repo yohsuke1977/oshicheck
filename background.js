@@ -68,6 +68,7 @@ async function checkAllChannels() {
   const whowatchPaths   = idsFor('whowatch');
   const niconicoIds     = idsFor('niconico');
   const seventeenRooms  = idsFor('17live');
+  const kickSlugs       = idsFor('kick');
 
   try {
     const params = new URLSearchParams();
@@ -78,6 +79,7 @@ async function checkAllChannels() {
     if (whowatchPaths.length)  params.set('whowatch', whowatchPaths.join(','));
     if (niconicoIds.length)    params.set('niconico', niconicoIds.join(','));
     if (seventeenRooms.length) params.set('17live', seventeenRooms.join(','));
+    if (kickSlugs.length)      params.set('kick', kickSlugs.join(','));
 
     const res = await fetch(`${API_BASE}/api/status?${params}`, {
       headers: { 'x-oshi-key': EXT_SHARED_KEY }
@@ -124,6 +126,9 @@ async function checkAllChannels() {
           if (s.name && s.name !== ch.channelId) ch.name = s.name;
           if (s.thumbnail) ch.thumbnail = s.thumbnail;
         }
+      } else if (ch.platform === 'kick') {
+        const s = data.kick?.[ch.channelId];
+        if (s) { ch.isLive = s.isLive; ch.lastChecked = Date.now(); }
       }
     }
   } catch (e) {
@@ -154,7 +159,8 @@ async function sendNotification(channel) {
     twitcasting: chrome.i18n.getMessage('platformTwitcasting'),
     whowatch: chrome.i18n.getMessage('platformWhowatch'),
     niconico: chrome.i18n.getMessage('platformNiconico'),
-    '17live': '17LIVE'
+    '17live': '17LIVE',
+    kick: 'Kick'
   }[channel.platform] ?? channel.platform;
   const url = getStreamUrl(channel);
   chrome.notifications.create(`live-${channel.id}-${Date.now()}`, {
@@ -192,6 +198,9 @@ function getStreamUrl(channel) {
   }
   if (channel.platform === '17live') {
     return `https://17.live/ja/live/${channel.channelId}`;
+  }
+  if (channel.platform === 'kick') {
+    return `https://kick.com/${channel.channelId}`;
   }
   return null;
 }

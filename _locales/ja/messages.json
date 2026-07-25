@@ -8,6 +8,7 @@
   "platformWhowatch": { "message": "ふわっち" },
   "platformNiconico": { "message": "ニコニコ生放送" },
   "platform17live": { "message": "17LIVE" },
+  "platformKick": { "message": "Kick" },
 
   "popupSettings": { "message": "設定" },
   "popupAddChannel": { "message": "+ チャンネルを追加" },
@@ -44,6 +45,8 @@
   "phNiconico": { "message": "https://www.nicovideo.jp/user/12345678" },
   "labelSeventeen": { "message": "17LIVE ライブURL / プロフィールURL" },
   "phSeventeen": { "message": "https://17.live/ja/live/1234567" },
+  "labelKick": { "message": "KickチャンネルURL / ユーザー名" },
+  "phKick": { "message": "https://kick.com/username" },
   "btnAdd": { "message": "チャンネルを追加" },
   "btnRegister": { "message": "登録する" },
 

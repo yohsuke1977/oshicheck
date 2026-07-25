@@ -1,4 +1,4 @@
-const PLATFORM_LABEL = { youtube: 'YouTube', twitch: 'Twitch', twitcasting: t('platformTwitcasting'), showroom: 'SHOWROOM', whowatch: t('platformWhowatch'), niconico: t('platformNiconico'), '17live': '17LIVE' };
+const PLATFORM_LABEL = { youtube: 'YouTube', twitch: 'Twitch', twitcasting: t('platformTwitcasting'), showroom: 'SHOWROOM', whowatch: t('platformWhowatch'), niconico: t('platformNiconico'), '17live': '17LIVE', kick: 'Kick' };
 
 document.getElementById('settingsBtn').addEventListener('click', () => {
   chrome.runtime.openOptionsPage();
@@ -98,6 +98,9 @@ function getStreamUrl(channel) {
   }
   if (channel.platform === '17live') {
     return `https://17.live/ja/live/${channel.channelId}`;
+  }
+  if (channel.platform === 'kick') {
+    return `https://kick.com/${channel.channelId}`;
   }
   return null;
 }

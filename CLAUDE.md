@@ -58,6 +58,7 @@ DB・認証:    未実装（将来: Supabase）
 | 3 | ツイキャス | 公式あり | ✅ 実装済み |
 | 4 | SHOWROOM | 非公式・安定 | ✅ 実装済み |
 | 5 | ニコニコ生放送 | 非公式・認証不要 | ✅ 実装済み（ユーザー生放送のみ） |
+| 5.5 | Kick | **公式API** | ✅ 実装済み |
 | 6 | 17Live | 非公式・認証不要 | ✅ 実装済み |
 | 7 | Pococha | 非公式 | ✗ **実装不可**（2026-07-25に実測で確認・Issue #12）|
 | 8 | ふわっち | 非公式 | ✅ 実装済み |
@@ -78,6 +79,13 @@ DB・認証:    未実装（将来: Supabase）
 - URL形式: `/live/:roomID` `/profile/r/:roomID` `/profile/u/:userID(UUID)`。UUID形式だけ `GET /api/v1/users/<uuid>/info` の `roomID` で解決してから使う。
 - 配信中ライバーの探索（デバッグ用）: `GET /api/v1/search?q=<2文字以上>&region=JP&count=30` が `lives`（配信中）と `accounts` を返す。パラメータ名は `q`（`query`ではない）で `region` 必須。
 - APIホストは `api-dsa` / `wap-api` / `api.17app.co` のいずれでも同じレスポンス。
+
+### Kickの実装メモ（2026-07-25・v0.2.1で提供）
+- **公式APIがある**。`GET https://api.kick.com/public/v1/channels?slug=<slug>` で `stream.is_live` / `viewer_count` / `stream_title`。表示名とアイコンは無いので `GET /public/v1/users?id=<broadcaster_user_id>` を併用。
+- 認証は **client_credentials の App Access Token**（`https://id.kick.com/oauth/token`）。**ユーザーのKickログインは不要**でTwitchと同じ形。scopeは空で通る。トークンの `expires_in` は約60日と長い。env: `KICK_CLIENT_ID` / `KICK_CLIENT_SECRET`。
+- **1リクエストで最大50 slug**まとめられるので、追跡数が増えてもリクエスト数がほぼ増えない（対応PFの中で最も安い）。
+- **落とし穴**: slugは英数字と`-_`で**最大25文字**。25文字超が1つでも混ざると**リクエスト全体が400になり、同じバッチの他チャンネルまでオフライン判定に巻き込まれる**。`fetchKick` は事前に `KICK_SLUG_RE` で弾いて隔離している（実装時に踏んだ）。存在しないslugは200で単に応答から省かれるだけなので無害。
+- 非公式の `kick.com/api/v2/channels/<slug>` はCloudflareで403（`Request blocked by security policy`）。**公式APIの方を使うこと**。
 
 ### Pocochaが実装不可な理由（2026-07-25に実測・再調査不要）
 ニコ生・17LIVEと同じ手法で再検証したが、**Pocochaだけは本当に閉じている**。根拠4点:
@@ -102,10 +110,10 @@ DB・認証:    未実装（将来: Supabase）
 ---
 
 ## ステータス
-2026年7月 Chrome Web Store公開中（v0.1.6）／**v0.2.0 提出準備中**（ニコ生・17LIVE対応で対応PFが5→7）
+2026年7月 Chrome Web Store公開中（v0.1.6）／**v0.2.0 審査中**（ニコ生・17LIVE）／**v0.2.1 準備中**（Kick・対応PFが8）
 
 **完成済み機能**
-- YouTube / Twitch / ツイキャス / SHOWROOM / ふわっち / ニコニコ生放送 / 17LIVE 対応
+- YouTube / Twitch / ツイキャス / SHOWROOM / ふわっち / ニコニコ生放送 / 17LIVE / Kick 対応
 - Firebase認証・Firestoreチャンネル同期
 - フリーミアム（無料5チャンネル・Pro ¥480/月）
 - Stripe決済（本番モード稼働中）

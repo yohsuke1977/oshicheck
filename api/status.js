@@ -1,4 +1,4 @@
-// GET /api/status?youtube=UCxxx,UCyyy&twitch=user1,user2&twitcasting=user1,user2&showroom=key1,key2&whowatch=path1,path2&niconico=userId1,userId2&17live=roomId1,roomId2
+// GET /api/status?youtube=UCxxx,UCyyy&twitch=user1,user2&twitcasting=user1,user2&showroom=key1,key2&whowatch=path1,path2&niconico=userId1,userId2&17live=roomId1,roomId2&kick=slug1,slug2
 // 各チャンネルのライブ状態を返す。
 //
 // B1第3層（コスト脱ユーザー数依存）: Upstashが設定されていれば、生存状態をRedisに
@@ -18,9 +18,11 @@ const OFFLINE = {
   twitcasting: { isLive: false, movieId: null },
   niconico:    { isLive: false, liveId: null },
   '17live':    { isLive: false },
+  kick:        { isLive: false },
 };
 
 let twitchTokenCache = null;
+let kickTokenCache = null;
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -43,6 +45,7 @@ module.exports = async function handler(req, res) {
     niconico:    split(niconico),
     // 先頭が数字のためプロパティ名として分割代入できない
     '17live':    split(req.query['17live']),
+    kick:        split(req.query.kick),
   };
   const result = {};
   const redis = getRedis();
@@ -55,6 +58,7 @@ module.exports = async function handler(req, res) {
       if (ids.twitcasting.length) result.twitcasting = await cachedPerChannel(redis, 'tc', ids.twitcasting, fetchTwitcasting, OFFLINE.twitcasting);
       if (ids.niconico.length)    result.niconico    = await cachedPerChannel(redis, 'nc', ids.niconico, fetchNiconico, OFFLINE.niconico);
       if (ids['17live'].length)   result['17live']   = await cachedPerChannel(redis, 'sl', ids['17live'], fetch17Live, OFFLINE['17live']);
+      if (ids.kick.length)        result.kick        = await cachedPerChannel(redis, 'kc', ids.kick, fetchKick, OFFLINE.kick);
       // SHOWROOM/ふわっちは1フェッチで全ライブ一覧が返る → 一覧を丸ごと1キーにキャッシュ（定数コスト）
       if (ids.showroom.length)    result.showroom    = buildShowroom(await cachedShared(redis, 'sr:onlives', fetchShowroomLiveSet), ids.showroom);
       if (ids.whowatch.length)    result.whowatch    = buildWhowatch(await cachedShared(redis, 'ww:onlives', fetchWhowatchLiveMap), ids.whowatch);
@@ -69,6 +73,7 @@ module.exports = async function handler(req, res) {
       if (ids.twitcasting.length) result.twitcasting = await fetchTwitcasting(ids.twitcasting);
       if (ids.niconico.length)    result.niconico    = await fetchNiconico(ids.niconico);
       if (ids['17live'].length)   result['17live']   = await fetch17Live(ids['17live']);
+      if (ids.kick.length)        result.kick        = await fetchKick(ids.kick);
       if (ids.showroom.length)    result.showroom    = buildShowroom(await fetchShowroomLiveSet(), ids.showroom);
       if (ids.whowatch.length)    result.whowatch    = buildWhowatch(await fetchWhowatchLiveMap(), ids.whowatch);
       res.setHeader('Cache-Control', 's-maxage=240, stale-while-revalidate=120');
@@ -291,6 +296,63 @@ async function fetch17Live(roomIds) {
     }
   }
   return result;
+}
+
+// Kick: 公式API（api.kick.com/public/v1）。client_credentials の App Access Token で叩ける
+// ＝ユーザーのKickログインは不要。1リクエストで最大50 slug まとめて問い合わせられるので、
+// 追跡チャンネルが増えてもリクエスト数はほぼ増えない（YouTubeのような従量課金もない）。
+// 非公式の kick.com/api/v2/... はCloudflareで403になるが、公式APIはこの経路で通る。
+// Kickのslug仕様: 英数字とハイフン/アンダースコア、最大25文字
+const KICK_SLUG_RE = /^[A-Za-z0-9_-]{1,25}$/;
+
+async function fetchKick(slugs) {
+  const result = {};
+  // 不正な形式のslugが1つでも混ざるとリクエスト全体が400になり、同じバッチの
+  // 他チャンネルまでオフライン判定に巻き込まれる。事前に弾いて隔離する。
+  const valid = slugs.filter(s => KICK_SLUG_RE.test(s));
+  try {
+    const token = await getKickToken();
+    // 50件ずつに分割（API上限）
+    for (let i = 0; i < valid.length; i += 50) {
+      const chunk = valid.slice(i, i + 50);
+      const qs = chunk.map(s => `slug=${encodeURIComponent(s)}`).join('&');
+      const res = await fetch(`https://api.kick.com/public/v1/channels?${qs}`, {
+        headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+      });
+      const data = await res.json();
+      for (const ch of data?.data || []) {
+        if (!ch.slug) continue;
+        result[ch.slug] = {
+          isLive: ch.stream?.is_live === true,
+          title: ch.stream_title || undefined,
+        };
+      }
+    }
+  } catch (e) {
+    // トークン取得失敗等。呼び出し元で OFFLINE にフォールバックされる
+  }
+  // 応答に含まれなかった slug（存在しない等）はオフライン扱い
+  for (const s of slugs) if (!result[s]) result[s] = { isLive: false };
+  return result;
+}
+
+// Kickのトークンは expires_in が約60日と長いので、関数インスタンス内でキャッシュする
+async function getKickToken() {
+  if (kickTokenCache?.expiresAt > Date.now() + 60_000) return kickTokenCache.access_token;
+
+  const res = await fetch('https://id.kick.com/oauth/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: process.env.KICK_CLIENT_ID,
+      client_secret: process.env.KICK_CLIENT_SECRET
+    })
+  });
+  const data = await res.json();
+  if (!data.access_token) throw new Error('Kick token failed');
+  kickTokenCache = { access_token: data.access_token, expiresAt: Date.now() + data.expires_in * 1000 };
+  return data.access_token;
 }
 
 // SHOWROOM: 全ライブ一覧を1回取得し、配信中の room_url_key 配列を返す。

@@ -8,6 +8,7 @@
   "platformWhowatch": { "message": "WhoWatch" },
   "platformNiconico": { "message": "Niconico Live" },
   "platform17live": { "message": "17LIVE" },
+  "platformKick": { "message": "Kick" },
 
   "popupSettings": { "message": "Settings" },
   "popupAddChannel": { "message": "+ Add channel" },
@@ -44,6 +45,8 @@
   "phNiconico": { "message": "https://www.nicovideo.jp/user/12345678" },
   "labelSeventeen": { "message": "17LIVE live URL / profile URL" },
   "phSeventeen": { "message": "https://17.live/ja/live/1234567" },
+  "labelKick": { "message": "Kick channel URL / username" },
+  "phKick": { "message": "https://kick.com/username" },
   "btnAdd": { "message": "Add channel" },
   "btnRegister": { "message": "Add" },
 

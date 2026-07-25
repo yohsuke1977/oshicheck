@@ -4,9 +4,11 @@
 // GET /api/channel-info?platform=showroom&q=room_url_key or URL
 // GET /api/channel-info?platform=niconico&q=https://www.nicovideo.jp/user/123 or lv URL or userId
 // GET /api/channel-info?platform=17live&q=https://17.live/ja/live/1234567 or profile URL or roomID
+// GET /api/channel-info?platform=kick&q=https://kick.com/slug or slug
 // Returns: { channelId, name, thumbnail }
 
 let twitchTokenCache = null;
+let kickTokenCache = null;
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -31,6 +33,7 @@ module.exports = async function handler(req, res) {
     else if (platform === 'whowatch')     info = await lookupWhowatch(q);
     else if (platform === 'niconico')     info = await lookupNiconico(q);
     else if (platform === '17live')       info = await lookup17Live(q);
+    else if (platform === 'kick')         info = await lookupKick(q);
     else return res.status(400).json({ error: 'Invalid platform' });
 
     res.json(info);
@@ -276,6 +279,61 @@ async function lookup17Live(input) {
     name: u.displayName || u.openID || roomId,
     thumbnail: u.picture ? `https://cdn.17app.co/${u.picture}` : ''
   };
+}
+
+// Kick: 追跡単位は slug（kick.com/<slug> のURL末尾）。公式APIをApp Access Tokenで叩く。
+// チャンネルAPIには表示名・アイコンが無いので、broadcaster_user_id を使って users APIも引く。
+async function lookupKick(input) {
+  // スキーム省略・www付き・末尾スラッシュ・クエリ付きのいずれも受け付ける
+  const slug = String(input).trim()
+    .replace(/^(?:https?:\/\/)?(?:www\.)?kick\.com\//i, '')
+    .replace(/[?#].*$/, '')
+    .replace(/\/$/, '');
+  if (!slug) {
+    throw new Error('KickのチャンネルURL（https://kick.com/username）を入力してください');
+  }
+  if (slug.length > 25) {
+    throw new Error('Kickのユーザー名は25文字までです。URLを確認してください');
+  }
+  if (!/^[A-Za-z0-9_-]+$/.test(slug)) {
+    throw new Error('KickのチャンネルURL（https://kick.com/username）を入力してください');
+  }
+
+  const token = await getKickToken();
+  const H = { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' };
+
+  const res = await fetch(`https://api.kick.com/public/v1/channels?slug=${encodeURIComponent(slug)}`, { headers: H });
+  const data = await res.json();
+  const ch = data?.data?.[0];
+  if (!ch) throw new Error('チャンネルが見つかりませんでした');
+
+  // 表示名・アイコンは users API から（取れなくても致命的ではないので握りつぶす）
+  let name = ch.slug, thumbnail = '';
+  try {
+    const uRes = await fetch(`https://api.kick.com/public/v1/users?id=${ch.broadcaster_user_id}`, { headers: H });
+    const u = (await uRes.json())?.data?.[0];
+    if (u?.name) name = u.name;
+    if (u?.profile_picture) thumbnail = u.profile_picture;
+  } catch (e) {}
+
+  return { channelId: ch.slug, name, thumbnail };
+}
+
+async function getKickToken() {
+  if (kickTokenCache?.expiresAt > Date.now() + 60_000) return kickTokenCache.access_token;
+  const res = await fetch('https://id.kick.com/oauth/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'client_credentials',
+      client_id: process.env.KICK_CLIENT_ID,
+      client_secret: process.env.KICK_CLIENT_SECRET
+    })
+  });
+  const data = await res.json();
+  if (!data.access_token) throw new Error('Kickの認証に失敗しました');
+  kickTokenCache = { access_token: data.access_token, expiresAt: Date.now() + data.expires_in * 1000 };
+  return data.access_token;
 }
 
 function decodeHtmlEntities(s) {
