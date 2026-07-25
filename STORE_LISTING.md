@@ -78,45 +78,29 @@ v0.2.0での変更は3か所のみ:
 「推し通知」で、あなたの“好き”をまとめて追いかけましょう。
 ```
 
-## 4. 詳細な説明（英語）
+## 4. 詳細な説明（英語）— 同じくアップロード後のフォームで入力
 
-⚠️ **現在ストアに入っている英語の詳細説明を未取得**（v0.1.6で登録済みのはずだが原文が手元にない）。
-下記は日本語版と同じ構成で書いた案。実際に入っている英文を確認したうえで、
-日本語と同様に「列挙への追記だけ」の最小差分に切り替えるのが望ましい。
+**これもストアに実際に入っている文章がベース**。日本語版とは意図的に構成が違う
+（短く刺す・海外の日本系VTuber/ライバーファンを狙い撃ち・✅の3点）。この構成は崩さない。
+
+v0.2.0での変更は3か所のみ:
+1. PF列挙に `Niconico Live and 17LIVE` を追加
+2. 差別化クレームの列挙に `Niconico Live or 17LIVE` を追加
+3. 末尾にニコ生の対応範囲を1行追記（日本語版と同じ理由＝チャンネル生放送での低評価防止。
+   英語版は短さが武器なので括弧書きを列挙に混ぜず独立した1文にした）
+
+1行目と ✅ の行は変更なし。
+
+**「the only extension」クレームは維持可能**（2026-07-25の競合調査で確認）:
+Chrome拡張の Stream Live は日本PF非対応、live-ranking.com はサイトであって拡張ではなく
+通知機能も無い。ニコ生・17LIVE追加で根拠はむしろ強化された。詳細は [[oshicheck-platform-research]]。
 
 ```
-Oshi Alert notifies you the moment your favorite streamer (VTuber, liver,
-or streamer) goes live - across multiple platforms, all in one place.
-
-■ WHO IT'S FOR
-- Tired of checking several streaming sites over and over
-- YouTube notifications never arrive and you miss the stream
-- You don't want to miss streams on SHOWROOM, TwitCasting, WhoWatch, Niconico or 17LIVE
-- You follow both VTubers and IRL streamers
-
-■ SUPPORTED PLATFORMS
-- YouTube Live
-- Twitch
-- SHOWROOM
-- TwitCasting
-- WhoWatch
-- Niconico Live (user broadcasts)
-- 17LIVE
-
-Most live-notification tools only support YouTube and Twitch.
-Oshi Alert covers SHOWROOM, TwitCasting, WhoWatch, Niconico Live and 17LIVE -
-the platforms at the heart of Japan's streaming and liver culture.
-
-■ HOW IT WORKS
-1. Just register your favorite streamer's channel URL
-2. Get a desktop notification and a badge count when they go live
-3. One click from the notification or popup takes you to the stream
-
-■ PRICING
-- Free: up to 5 channels
-- Pro (JPY 480/month): unlimited channels
-
-Never miss your favorite streamer again.
+Oshi Alert – the only extension that covers Japanese streaming platforms.
+Get instant desktop notifications when your favorite VTubers, idols and streamers go live — on YouTube Live, Twitch, TwitCasting, SHOWROOM, WhoWatch, Niconico Live and 17LIVE, all in one place.
+Perfect for overseas fans of Japanese VTubers and livers: no other notifier supports SHOWROOM, TwitCasting, WhoWatch, Niconico Live or 17LIVE.
+✅ Free for up to 5 channels ✅ One-click to open the stream ✅ Works while you work — never miss a guerrilla stream again.
+Niconico Live support covers user broadcasts.
 ```
 
 ## 5. 今後の検討（未実施）
