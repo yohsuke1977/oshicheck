@@ -1,6 +1,6 @@
 {
   "extName": { "message": "推し通知 - VTuber/ライバーの配信をまとめて通知" },
-  "extDesc": { "message": "YouTube Live・Twitch・SHOWROOM・ツイキャス・ふわっちの配信開始を、推しごとにまとめて通知。VTuberもライバーも見逃さない無料の配信通知拡張。" },
+  "extDesc": { "message": "YouTube・Twitch・ツイキャス・SHOWROOM・ふわっち・ニコニコ生放送・17LIVEの配信開始をまとめてデスクトップ通知。VTuberもライバーも見逃さない無料の配信通知拡張。" },
   "extShortName": { "message": "推し通知" },
   "optPageTitle": { "message": "推し通知 設定" },
 
