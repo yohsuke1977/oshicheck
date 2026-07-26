@@ -17,6 +17,7 @@ https://chromewebstore.google.com/detail/cplmjepdmjcnojabbcniodaffdoemghg
 > **対処**: PF名の列挙は**「■ 対応プラットフォーム」の1箇所だけ**にする（24→10回）。他は一般表現に置換。
 > **今後PFを追加するときの鉄則**: リストに1行足すだけ。他の段落のPF名列挙を増やさない。
 > 提出前に必ず出現回数を数えること。目安は**詳細説明で10回程度まで**。
+> 実績値: 却下24回 / 修正後10回(7PF) / **Kick追加後11回(8PF)＝5PF時代に通っていた版と同水準**。
 
 ---
 
@@ -33,10 +34,12 @@ v0.2.0では名前を変えていない。CWS内検索がインストールの�
 
 | | 文言 | 字数 |
 |---|---|---|
-| ja | `YouTube・Twitch・ツイキャス・SHOWROOM・ふわっち・ニコニコ生放送・17LIVEの配信開始をまとめてデスクトップ通知。VTuberもライバーも見逃さない無料の配信通知拡張。` | 95 |
-| en | `Desktop alerts the moment your favorite streamers go live on YouTube, Twitch, TwitCasting, SHOWROOM, WhoWatch, Niconico or 17LIVE.` | 130 |
+| ja | `YouTube・Twitch・ツイキャス・SHOWROOM・ニコ生など8サイトの配信開始をまとめてデスクトップ通知。VTuberもライバーも見逃さない無料の配信通知拡張。` | 85 |
+| en | `Desktop alerts the moment your favorite streamers go live — 8 platforms including YouTube, Twitch, TwitCasting, SHOWROOM and Kick.` | 130 |
 
 英語は上限132字に対して130字でほぼ限界。PFを増やす際は言い回しから削ること。
+**2026-07-26改訂**: キーワードスパム却下を受けて、短い説明も全PF列挙をやめ「◯サイト」表記＋代表数件に変更（日本語はPF名8回→5回）。
+短い説明は却下理由に**挙がっていない**が、閾値が不明なため保守側に倒した。検索結果では途中で切れるので、長い羅列より「8サイト」の方が広さが伝わる判断でもある。
 
 ---
 
@@ -69,6 +72,7 @@ v0.2.0での変更は3か所のみだったが、それが却下の原因にな�
 ・ふわっち
 ・ニコニコ生放送（ユーザー生放送）
 ・17LIVE（イチナナ）
+・Kick
 
 海外製の通知ツールは大手2サイトのみの対応がほとんどです。
 「推し通知」は日本の配信・ライバー文化のサイトに幅広く対応しているのが特徴です。
@@ -108,7 +112,7 @@ Oshi Alert – the only extension that covers Japanese streaming platforms.
 Get instant desktop notifications when your favorite VTubers, idols and streamers go live, all in one place.
 
 Supported platforms:
-YouTube Live, Twitch, TwitCasting, SHOWROOM, WhoWatch, Niconico Live (user broadcasts) and 17LIVE.
+YouTube Live, Twitch, TwitCasting, SHOWROOM, WhoWatch, Niconico Live (user broadcasts), 17LIVE and Kick.
 
 Perfect for overseas fans of Japanese VTubers and livers: most notifiers cover only the two big Western platforms.
 ✅ Free for up to 5 channels ✅ One-click to open the stream ✅ Works while you work — never miss a guerrilla stream again.
