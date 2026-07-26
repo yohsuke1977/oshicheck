@@ -1,4 +1,4 @@
-# Chrome Web Store 掲載文言（v0.2.0 / 2026-07-25）
+# Chrome Web Store 掲載文言（v0.2.1 / 2026-07-26 改訂）
 
 ストア掲載情報の原本。過去に何度も作り直しているので、ここを唯一の原本にして差分で管理する。
 
@@ -8,6 +8,15 @@
 
 CTAリンクはID直リンクを使う（名前変更に強い）:
 https://chromewebstore.google.com/detail/cplmjepdmjcnojabbcniodaffdoemghg
+
+> ## ⚠️ 2026-07-26: キーワードスパムで却下された（必読）
+> v0.2.0 が **キーワードスパム**（参照ID `Yellow Argon` / ルーティングID `FZSL`）で不承認。
+> 指摘箇所は日本語詳細説明の「■ 対応プラットフォーム」リスト周辺（機械翻訳された状態で引用された）。
+> **原因**: PF名を「こんな人におすすめ」「対応プラットフォーム」「差別化段落」の**3箇所すべてに列挙**しており、
+> そこへニコ生・17LIVEを足したことで出現回数が **11回→24回** に増え閾値を超えた。
+> **対処**: PF名の列挙は**「■ 対応プラットフォーム」の1箇所だけ**にする（24→10回）。他は一般表現に置換。
+> **今後PFを追加するときの鉄則**: リストに1行足すだけ。他の段落のPF名列挙を増やさない。
+> 提出前に必ず出現回数を数えること。目安は**詳細説明で10回程度まで**。
 
 ---
 
@@ -36,7 +45,7 @@ v0.2.0では名前を変えていない。CWS内検索がインストールの�
 **この文章はストアに実際に入っているものをベースにしている**（構成・語り口を変えない方針。
 今のインストールを取れている文章なので、PF追加時は列挙への追記だけに留める）。
 
-v0.2.0での変更は3か所のみ:
+v0.2.0での変更は3か所のみだったが、それが却下の原因になった（上部の警告参照）。当時の変更:
 1. 「こんな人におすすめ」のPF列挙に `ニコ生・17LIVE` を追加
 2. 「対応プラットフォーム」に2行追加（ニコ生は**ユーザー生放送のみ対応**なので注記を入れる。
    チャンネル生放送を登録しようとした人が「動かない」と低評価を付けるのを防ぐため）
@@ -48,8 +57,8 @@ v0.2.0での変更は3か所のみ:
 
 ■ こんな人におすすめ
 ・複数の配信サイトを毎回チェックするのが面倒
-・YouTubeの通知が来なくて配信を見逃してしまう
-・SHOWROOM・ツイキャス・ふわっち・ニコ生・17LIVEの推しの配信開始を逃したくない
+・アプリの通知が来なくて配信を見逃してしまう
+・推しがサイトをまたいで配信していて、追いきれない
 ・VTuberも顔出しストリーマーも、まとめて追いたい
 
 ■ 対応プラットフォーム
@@ -61,9 +70,8 @@ v0.2.0での変更は3か所のみ:
 ・ニコニコ生放送（ユーザー生放送）
 ・17LIVE（イチナナ）
 
-海外製の配信通知ツールは YouTube と Twitch にしか対応していないものがほとんど。
-「推し通知」は SHOWROOM・ツイキャス・ふわっち・ニコニコ生放送・17LIVE といった
-日本の配信・ライバー文化に対応しているのが特徴です。
+海外製の通知ツールは大手2サイトのみの対応がほとんどです。
+「推し通知」は日本の配信・ライバー文化のサイトに幅広く対応しているのが特徴です。
 
 ■ 使い方はかんたん
 1. 推しのチャンネルURLを登録するだけ
@@ -83,7 +91,7 @@ v0.2.0での変更は3か所のみ:
 **これもストアに実際に入っている文章がベース**。日本語版とは意図的に構成が違う
 （短く刺す・海外の日本系VTuber/ライバーファンを狙い撃ち・✅の3点）。この構成は崩さない。
 
-v0.2.0での変更は3か所のみ:
+v0.2.0での変更は3か所のみだったが、それが却下の原因になった（上部の警告参照）。当時の変更:
 1. PF列挙に `Niconico Live and 17LIVE` を追加
 2. 差別化クレームの列挙に `Niconico Live or 17LIVE` を追加
 3. 末尾にニコ生の対応範囲を1行追記（日本語版と同じ理由＝チャンネル生放送での低評価防止。
@@ -97,10 +105,13 @@ Chrome拡張の Stream Live は日本PF非対応、live-ranking.com はサイト
 
 ```
 Oshi Alert – the only extension that covers Japanese streaming platforms.
-Get instant desktop notifications when your favorite VTubers, idols and streamers go live — on YouTube Live, Twitch, TwitCasting, SHOWROOM, WhoWatch, Niconico Live and 17LIVE, all in one place.
-Perfect for overseas fans of Japanese VTubers and livers: no other notifier supports SHOWROOM, TwitCasting, WhoWatch, Niconico Live or 17LIVE.
+Get instant desktop notifications when your favorite VTubers, idols and streamers go live, all in one place.
+
+Supported platforms:
+YouTube Live, Twitch, TwitCasting, SHOWROOM, WhoWatch, Niconico Live (user broadcasts) and 17LIVE.
+
+Perfect for overseas fans of Japanese VTubers and livers: most notifiers cover only the two big Western platforms.
 ✅ Free for up to 5 channels ✅ One-click to open the stream ✅ Works while you work — never miss a guerrilla stream again.
-Niconico Live support covers user broadcasts.
 ```
 
 ## 5. 今後の検討（未実施）
