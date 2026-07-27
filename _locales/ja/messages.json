@@ -1,6 +1,6 @@
 {
   "extName": { "message": "推し通知 - VTuber/ライバーの配信をまとめて通知" },
-  "extDesc": { "message": "YouTube・Twitch・ツイキャス・SHOWROOM・ニコ生など8サイトの配信開始をまとめてデスクトップ通知。VTuberもライバーも見逃さない無料の配信通知拡張。" },
+  "extDesc": { "message": "推しの配信開始をデスクトップ通知でお知らせする無料のChrome拡張。YouTube・Twitchから日本のライバー系サイトまで、8つの配信サイトを横断して見逃しを防ぎます。" },
   "extShortName": { "message": "推し通知" },
   "optPageTitle": { "message": "推し通知 設定" },
 

@@ -1,6 +1,6 @@
 {
   "extName": { "message": "Oshi Alert - Live Notifications for VTubers & JP Streamers" },
-  "extDesc": { "message": "Desktop alerts the moment your favorite streamers go live — 8 platforms including YouTube, Twitch, TwitCasting, SHOWROOM and Kick." },
+  "extDesc": { "message": "Desktop alerts the moment your favorite streamers go live. Covers 8 services, from Twitch and YouTube to Japan's liver platforms." },
   "extShortName": { "message": "Oshi Alert" },
   "optPageTitle": { "message": "Oshi Alert Settings" },
 

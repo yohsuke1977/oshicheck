@@ -14,9 +14,19 @@ https://chromewebstore.google.com/detail/cplmjepdmjcnojabbcniodaffdoemghg
 > 指摘箇所は日本語詳細説明の「■ 対応プラットフォーム」リスト周辺（機械翻訳された状態で引用された）。
 > **原因**: PF名を「こんな人におすすめ」「対応プラットフォーム」「差別化段落」の**3箇所すべてに列挙**しており、
 > そこへニコ生・17LIVEを足したことで出現回数が **11回→24回** に増え閾値を超えた。
-> **対処**: PF名の列挙は**「■ 対応プラットフォーム」の1箇所だけ**にする（24→10回）。他は一般表現に置換。
-> **今後PFを追加するときの鉄則**: リストに1行足すだけ。他の段落のPF名列挙を増やさない。
-> 提出前に必ず出現回数を数えること。目安は**詳細説明で10回程度まで**。
+> **1回目の対処（失敗）**: PF名の出現回数を24→11回に削減。→ **2026-07-27に再び却下**。
+> 引用された違反箇所が**前回と1文字も変わらなかった**ことから、問題は「重複」ではなく
+> **箇条書きリストの構造そのもの**だと判明。ブランド名だけが連続して並ぶ形を、
+> 分類器がキーワードの羅列と見なしている。ポリシー文言の「**説明的でない**メタデータ」がこれ。
+>
+> **2回目の対処（本命）**: PF名を**箇条書きから外し、1つずつ機能説明を伴う文**に書き換えた。
+> 例:「YouTube Live では、ベル通知に気づけなかった配信もPC側で検知してお知らせします。」
+> 短い説明もブランド名5個→2個に減らし「8つの配信サイト」という表現に寄せた。
+>
+> **今後PFを追加するときの鉄則**:
+> 1. **ブランド名だけの行を作らない**。必ずそのPFで何ができるかの説明とセットにする。
+> 2. 出現回数より**構造**を見る。名前が連続して並んでいたら危険。
+> 3. 短い説明でもブランド名の羅列を避け、2〜3個+「◯サイト」に留める。
 > 実績値: 却下24回 / 修正後10回(7PF) / **Kick追加後11回(8PF)＝5PF時代に通っていた版と同水準**。
 
 ---
@@ -34,8 +44,8 @@ v0.2.0では名前を変えていない。CWS内検索がインストールの�
 
 | | 文言 | 字数 |
 |---|---|---|
-| ja | `YouTube・Twitch・ツイキャス・SHOWROOM・ニコ生など8サイトの配信開始をまとめてデスクトップ通知。VTuberもライバーも見逃さない無料の配信通知拡張。` | 85 |
-| en | `Desktop alerts the moment your favorite streamers go live — 8 platforms including YouTube, Twitch, TwitCasting, SHOWROOM and Kick.` | 130 |
+| ja | `推しの配信開始をデスクトップ通知でお知らせする無料のChrome拡張。YouTube・Twitchから日本のライバー系サイトまで、8つの配信サイトを横断して見逃しを防ぎます。` | 87 |
+| en | `Desktop alerts the moment your favorite streamers go live. Covers 8 services, from Twitch and YouTube to Japan's liver platforms.` | 129 |
 
 英語は上限132字に対して130字でほぼ限界。PFを増やす際は言い回しから削ること。
 **2026-07-26改訂**: キーワードスパム却下を受けて、短い説明も全PF列挙をやめ「◯サイト」表記＋代表数件に変更（日本語はPF名8回→5回）。
@@ -64,15 +74,16 @@ v0.2.0での変更は3か所のみだったが、それが却下の原因にな�
 ・推しがサイトをまたいで配信していて、追いきれない
 ・VTuberも顔出しストリーマーも、まとめて追いたい
 
-■ 対応プラットフォーム
-・YouTube Live
-・Twitch
-・SHOWROOM
-・ツイキャス（TwitCasting）
-・ふわっち
-・ニコニコ生放送（ユーザー生放送）
-・17LIVE（イチナナ）
-・Kick
+■ 対応している配信サイトと、それぞれでできること
+
+YouTube Live では、ベル通知に気づけなかった配信もPC側で検知してお知らせします。
+Twitch では、フォロー中の配信者が始めたタイミングでデスクトップに通知が出ます。
+SHOWROOM は、アプリを開いていない時間帯の配信開始もキャッチできます。
+ツイキャス（TwitCasting）は、突発的なゲリラ配信の見逃しを減らすのに役立ちます。
+ふわっち は、PCで別の作業をしながらでも配信開始に気づけます。
+ニコニコ生放送 は、ユーザー生放送に対応しています（チャンネル生放送・公式番組は対象外です）。
+17LIVE は、スマホアプリを起動していない時間帯の配信開始も拾えます。
+Kick は、日本語配信者が増えてきたことを受けて対応しました。
 
 海外製の通知ツールは大手2サイトのみの対応がほとんどです。
 「推し通知」は日本の配信・ライバー文化のサイトに幅広く対応しているのが特徴です。
@@ -111,10 +122,19 @@ Chrome拡張の Stream Live は日本PF非対応、live-ranking.com はサイト
 Oshi Alert – the only extension that covers Japanese streaming platforms.
 Get instant desktop notifications when your favorite VTubers, idols and streamers go live, all in one place.
 
-Supported platforms:
-YouTube Live, Twitch, TwitCasting, SHOWROOM, WhoWatch, Niconico Live (user broadcasts), 17LIVE and Kick.
+■ What it does on each service
+
+On YouTube Live it catches streams even when the bell notification never reaches you.
+On Twitch you get a desktop alert the moment a channel you follow goes live.
+SHOWROOM streams are detected without keeping the mobile app open.
+TwitCasting is where sudden, unannounced streams are easiest to miss, so we watch it for you.
+WhoWatch lets you notice a stream while you keep working on your PC.
+Niconico Live is supported for user broadcasts (channel and official programs are not covered).
+17LIVE streams are picked up even when the phone app is closed.
+Kick was added as more Japanese-speaking streamers moved there.
 
 Perfect for overseas fans of Japanese VTubers and livers: most notifiers cover only the two big Western platforms.
+
 ✅ Free for up to 5 channels ✅ One-click to open the stream ✅ Works while you work — never miss a guerrilla stream again.
 ```
 
