@@ -80,9 +80,12 @@ input[type="password"] {
 input:focus { border-color: #9147ff; }
 input::placeholder { color: #3d3d50; }
 
+/* 対応PFが8つに増えて1行に収まらなくなったため折り返す（v0.2.3）。
+   wrapが無いとflexが各項目を潰し、ラベルが文字単位で改行されて縦書きのようになる。 */
 .radio-group {
   display: flex;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 10px 16px;
 }
 
 .radio {
@@ -92,6 +95,9 @@ input::placeholder { color: #3d3d50; }
   cursor: pointer;
   font-size: 13px;
   color: #adadb8;
+  /* 潰れ・語中改行の防止。これが無いと wrap しても幅が足りない時に文字が縦に割れる */
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .radio input[type="radio"] { accent-color: #9147ff; cursor: pointer; }
