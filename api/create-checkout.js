@@ -31,7 +31,8 @@ module.exports = async function handler(req, res) {
     });
     res.redirect(303, session.url);
   } catch (e) {
+    // Stripeの生メッセージ（英語・内部IDを含むことがある）はユーザーに見せず、ログにだけ残す
     console.error('Stripe error:', e.message, e.type, e.code);
-    res.status(500).send(`決済エラー: ${e.message}`);
+    res.status(500).send('決済ページを開けませんでした。時間をおいて再度お試しください。解決しない場合は設定画面のフィードバックフォームからご連絡ください。');
   }
 };

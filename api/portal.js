@@ -34,7 +34,18 @@ module.exports = async function handler(req, res) {
     });
     res.redirect(303, session.url);
   } catch (e) {
-    console.error('Portal error:', e.message);
-    res.status(500).send(`エラー: ${e.message}`);
+    // Stripeの生メッセージは英語かつ customer ID を含むので、そのままユーザーに見せない。
+    // 詳細はサーバーログにだけ残す。
+    console.error('Portal error:', e.type, e.code, e.message);
+
+    // 保存済みの customer がStripe側に存在しない（テストモードで作られた記録が
+    // 本番キーで参照された場合など）。ユーザー側では復旧できないので問い合わせに誘導する。
+    if (e.code === 'resource_missing') {
+      return res.status(404).send(
+        'お支払い情報が確認できませんでした。お手数ですが、設定画面のフィードバックフォームからご連絡ください。'
+      );
+    }
+
+    res.status(500).send('管理画面を開けませんでした。時間をおいて再度お試しください。');
   }
 };
