@@ -35,58 +35,113 @@
 <body>
   <div class="container">
     <h1>プライバシーポリシー</h1>
-    <p class="meta">推し通知 - ライバー配信アラート ／ 最終更新: 2026年6月2日</p>
+    <p class="meta">推し通知 / Oshi Alert ／ 最終更新: 2026年8月4日 ／ <a href="https://oshialert.com/privacy/en">English version</a></p>
 
     <div class="card">
-      <h2>1. 収集する情報</h2>
-      <p>本拡張機能が収集・保存する情報は以下のみです：</p>
+      <h2>1. 事業者情報</h2>
+      <p>本サービス「推し通知」（Chrome拡張機能「推し通知 / Oshi Alert」および oshialert.com）の提供者は以下のとおりです。本ポリシーにおける個人情報の管理責任者にあたります。</p>
       <ul>
-        <li>登録したチャンネルのID・名前・サムネイル画像URL（プラットフォームのAPIから取得）</li>
-        <li>各チャンネルのライブ配信状態（オンライン / オフライン）</li>
-      </ul>
-      <p>これらの情報は<strong>お使いのブラウザ内（chrome.storage.local）にのみ保存</strong>され、外部サーバーに送信されることはありません。</p>
-    </div>
-
-    <div class="card">
-      <h2>2. サーバーへの通信</h2>
-      <p>配信状態の確認のため、登録チャンネルのIDを本サービスのAPIサーバー（oshicheck.vercel.app）に送信します。APIサーバーはこれを用いて各プラットフォームのAPIを呼び出し、ライブ状態を返します。</p>
-      <p>送信される情報はチャンネルIDのみであり、ユーザーを特定できる個人情報は一切送信しません。</p>
-    </div>
-
-    <div class="card">
-      <h2>3. 利用する外部サービス</h2>
-      <p>本拡張機能は以下のサービスのAPIを利用します。各サービスのプライバシーポリシーもご確認ください。</p>
-      <ul>
-        <li><a href="https://policies.google.com/privacy" target="_blank">Google（YouTube Data API）</a></li>
-        <li><a href="https://www.twitch.tv/p/ja-jp/legal/privacy-notice/" target="_blank">Twitch</a></li>
-        <li><a href="https://twitcasting.tv/company/privacypolicy.php" target="_blank">ツイキャス（TwitCasting）</a></li>
+        <li>事業者名：Zen Works</li>
+        <li>運営責任者：山下 陽介</li>
+        <li>連絡先：<a href="https://docs.google.com/forms/d/e/1FAIpQLSfW3OG9sLvSZ6lmFk6mypmMoFt_xHQppH0Y3a6nwCg_cPhj5w/viewform" target="_blank" rel="noopener">お問い合わせフォーム</a></li>
       </ul>
     </div>
 
     <div class="card">
-      <h2>4. 収集しない情報</h2>
+      <h2>2. 収集する情報と、その利用目的</h2>
+      <p>本サービスが取り扱う情報と、それぞれの利用目的は以下のとおりです。記載のない目的には利用しません。</p>
       <ul>
-        <li>氏名・メールアドレスなどの個人を特定できる情報</li>
-        <li>閲覧履歴・検索履歴</li>
+        <li><strong>メールアドレス</strong>（ログイン機能を利用する場合のみ）<br>利用目的：アカウントの作成・認証、および登録チャンネルを複数端末で同期するための本人識別。Firebase Authentication が処理します。パスワードは同サービスによりハッシュ化して保管され、当方が平文で参照することはありません。</li>
+        <li><strong>登録チャンネル情報</strong>（プラットフォーム名・チャンネルID・チャンネル名・アイコン画像URL）<br>利用目的：配信開始の監視と通知、および設定画面での一覧表示。ログイン時は端末間同期のためクラウドにも保存します。</li>
+        <li><strong>配信状態</strong>（登録チャンネルが配信中かどうか、配信ID）<br>利用目的：通知の送信と、通知から視聴ページを開くため。</li>
+        <li><strong>プラン情報</strong>（無料／Pro、Stripeの顧客ID）<br>利用目的：Proプランの有効性判定と、解約手続きの導線提供。</li>
+        <li><strong>匿名の利用イベント</strong>（拡張機能が生成するランダムなID、イベント名、対象プラットフォーム名）<br>利用目的：どの機能が使われているかを把握し改善するため。Google Analytics 4 に送信します。このIDは氏名・メールアドレス等と結び付けておらず、当方は個人を特定できません。</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>3. 情報の保存場所と保存期間</h2>
+      <ul>
+        <li><strong>お使いのブラウザ内</strong>（chrome.storage.local）：登録チャンネル、プラン情報、ログイン状態、匿名の利用イベント用ID。<br>保存期間：拡張機能をアンインストールするまで。アンインストールにより削除されます。</li>
+        <li><strong>Google Cloud（Firebase Authentication / Cloud Firestore）</strong>：ログインした場合のメールアドレス、登録チャンネル、プラン情報。<br>保存期間：アカウントを削除するまで。削除のご依頼から7日以内に消去します。</li>
+        <li><strong>当方のAPIサーバー（Vercel）およびキャッシュ（Upstash Redis）</strong>：配信状態の一時キャッシュ。<br>保存期間：最大180秒で自動的に消去されます。キャッシュはチャンネル単位で保持し、どの利用者が誰を追跡しているかという情報は保存しません。</li>
+      </ul>
+      <p>これらのサービスの性質上、データは日本国外（米国等）のサーバーに保存・処理される場合があります。</p>
+    </div>
+
+    <div class="card">
+      <h2>4. サーバーへの通信</h2>
+      <p>配信状態の確認のため、登録チャンネルのIDを当方のAPIサーバー（oshicheck.vercel.app）に送信します。サーバーはこれを用いて各配信サイトのAPIを呼び出し、配信中かどうかを返します。<strong>送信されるのはチャンネルIDのみで、メールアドレスや閲覧内容は送信しません。</strong></p>
+    </div>
+
+    <div class="card">
+      <h2>5. 第三者への提供・共有</h2>
+      <p>収集した情報を第三者に販売することはありません。以下の場合に限り、サービスの提供に必要な範囲で外部サービスに情報を渡します。</p>
+      <ul>
+        <li><strong>各配信サイト</strong>（下記6）：配信状態を取得するため、チャンネルIDを送信します。利用者個人を識別する情報は送信しません。</li>
+        <li><strong>Google（Firebase / Google Analytics）</strong>：アカウント認証・データ保存・匿名の利用状況分析のため。</li>
+        <li><strong>Stripe</strong>：Proプランの決済処理のため。</li>
+        <li><strong>法令に基づく開示請求があった場合</strong>：法令の範囲内で対応します。</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>6. 利用する外部サービス</h2>
+      <p>本サービスは以下の外部サービスを利用します。各社のプライバシーポリシーもご確認ください。</p>
+      <ul>
+        <li><a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google（YouTube Data API・Firebase・Google Analytics）</a></li>
+        <li><a href="https://www.twitch.tv/p/ja-jp/legal/privacy-notice/" target="_blank" rel="noopener">Twitch</a></li>
+        <li><a href="https://twitcasting.tv/company/privacypolicy.php" target="_blank" rel="noopener">ツイキャス（TwitCasting）</a></li>
+        <li>SHOWROOM ／ ふわっち ／ ニコニコ生放送 ／ 17LIVE（配信状態の取得）</li>
+        <li><a href="https://kick.com/privacy-policy" target="_blank" rel="noopener">Kick（配信状態の取得）</a></li>
+        <li><a href="https://stripe.com/jp/privacy" target="_blank" rel="noopener">Stripe（決済）</a></li>
+        <li><a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener">Vercel（APIサーバー）</a> ／ <a href="https://upstash.com/trust/privacy.pdf" target="_blank" rel="noopener">Upstash（配信状態の一時キャッシュ）</a></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>7. データの削除方法とご利用者の権利</h2>
+      <ul>
+        <li><strong>登録チャンネルの削除</strong>：設定画面の各チャンネルの削除ボタンから。ログイン中の場合はクラウド上のデータも併せて削除されます。</li>
+        <li><strong>端末内データの削除</strong>：拡張機能をアンインストールすると、ブラウザ内に保存された情報はすべて削除されます。</li>
+        <li><strong>アカウントとクラウドデータの削除</strong>：<a href="https://docs.google.com/forms/d/e/1FAIpQLSfW3OG9sLvSZ6lmFk6mypmMoFt_xHQppH0Y3a6nwCg_cPhj5w/viewform" target="_blank" rel="noopener">お問い合わせフォーム</a>からご依頼ください。登録メールアドレスと同期データを7日以内に削除します。</li>
+        <li><strong>保有データの開示・訂正のご請求</strong>：同フォームより承ります。</li>
+        <li><strong>Proプランの解約</strong>：設定画面の「プランを管理・解約」から手続きできます。</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>8. 安全管理措置</h2>
+      <ul>
+        <li>拡張機能とサーバー間の通信、およびサーバーと各配信サイト間の通信は、すべてHTTPSで暗号化しています。</li>
+        <li>クラウドに保存するデータへのアクセスは、Firebase Authentication による本人認証を経た当該利用者本人に限定しています。</li>
+        <li>各配信サイトのAPIキー等の秘密情報はサーバーの環境変数で管理し、拡張機能には含めていません。そのため利用者がAPIキーを設定する必要はありません。</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>9. 収集しない情報</h2>
+      <ul>
+        <li>ブラウザの閲覧履歴・検索履歴・開いているタブの内容</li>
         <li>位置情報</li>
-        <li>クレジットカード情報・決済情報</li>
+        <li>クレジットカード番号等の決済情報（Stripeが処理し、当方は保持しません）</li>
+        <li>配信の視聴履歴・チャットの内容</li>
       </ul>
     </div>
 
     <div class="card">
-      <h2>5. 情報の第三者提供</h2>
-      <p>収集した情報を第三者に販売・提供・開示することは一切ありません。</p>
+      <h2>10. お子様の利用について</h2>
+      <p>本サービスは13歳未満の方を対象としていません。13歳未満の方から意図せず情報を取得したことが判明した場合、速やかに削除します。</p>
     </div>
 
     <div class="card">
-      <h2>6. ポリシーの変更</h2>
-      <p>本ポリシーは必要に応じて更新することがあります。変更があった場合は本ページの「最終更新日」を更新します。</p>
+      <h2>11. ポリシーの変更</h2>
+      <p>本ポリシーは必要に応じて更新することがあります。重要な変更を行う場合は、本ページの「最終更新日」を更新してお知らせします。</p>
     </div>
 
     <div class="card">
-      <h2>7. お問い合わせ</h2>
-      <p>本プライバシーポリシーに関するご質問は、GitHubのIssueよりお問い合わせください。</p>
-      <p><a href="https://github.com/yohsuke1977/oshicheck/issues" target="_blank">https://github.com/yohsuke1977/oshicheck/issues</a></p>
+      <h2>12. お問い合わせ</h2>
+      <p>本ポリシーおよびデータの取り扱いに関するお問い合わせ・削除のご依頼は <a href="https://docs.google.com/forms/d/e/1FAIpQLSfW3OG9sLvSZ6lmFk6mypmMoFt_xHQppH0Y3a6nwCg_cPhj5w/viewform" target="_blank" rel="noopener">お問い合わせフォーム</a> よりご連絡ください。</p>
     </div>
   </div>
 </body>
