@@ -101,6 +101,12 @@ body {
 .platform-tag.twitcasting { color: #1abf75; }
 .platform-tag.showroom { color: #ff4569; }
 .platform-tag.whowatch { color: #00b4d8; }
+/* ニコ生・17LIVE・Kick（v0.2.4で追加）。LPのPFチップと同じ色に揃えている。
+   「17live」はクラス名が数字で始まるため .17live というセレクタが書けない
+   （CSS識別子は数字始まり不可）。属性セレクタで指定する。 */
+.platform-tag.niconico { color: #ffcc00; }
+.platform-tag[class~="17live"] { color: #ff5f5f; }
+.platform-tag.kick { color: #53fc18; }
 
 .status {
   display: flex;

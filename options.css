@@ -213,6 +213,10 @@ input::placeholder { color: #3d3d50; }
 .ch-platform.twitcasting { background: #0e2e1e; color: #1abf75; }
 .ch-platform.showroom { background: #2e0e1a; color: #ff4569; }
 .ch-platform.whowatch { background: #0e2030; color: #00b4d8; }
+/* ニコ生・17LIVE・Kick（v0.2.4で追加）。「17live」は数字始まりで .17live と書けないため属性セレクタ */
+.ch-platform.niconico { background: #302a0e; color: #ffcc00; }
+.ch-platform[class~="17live"] { background: #301616; color: #ff5f5f; }
+.ch-platform.kick { background: #14300c; color: #53fc18; }
 
 /* Auth */
 .auth-buttons { display: flex; gap: 8px; margin-top: 4px; }
