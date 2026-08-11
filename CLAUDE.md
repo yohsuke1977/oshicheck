@@ -122,6 +122,7 @@ DB・認証:    未実装（将来: Supabase）
 | 07-31 | v0.2.3 | ユーザーデータのプライバシー(Purple Nickel) | ポリシー記載不足。LP側(oshialert.com/privacy)を12セクションに拡充 → **これは対象違いだった** |
 | 08-03 | v0.2.3 | 同上（文面完全同一） | **真因**: ストア登録URLは `yohsuke1977.github.io/oshicheck/privacy-policy.html`（本repoのGitHub Pages）で、2026-06-02版のまま事実と異なる記載を含んでいた → 同内容に差し替え |
 | 08-06 | v0.2.3 | — | **審査通過・公開**。登録URLも `oshialert.com/privacy` に変更済み |
+| 08-11 | （掲載情報のみ） | — | スクリーンショットを8PF対応版に差し替え・**審査通過**。パッケージ変更なし |
 
 **ポリシー/URL系で却下されたら、まず「ストアに登録されているURLはどれか」を確認する。** 直す対象を間違えると何度出しても通らない。プライバシーポリシーの原本は **`privacy-policy.html`（本repo・GitHub Pages・ストア登録先）** と `oshi-lp/privacy/`（LP用・日英）の2系統があり、両方を揃える必要がある。
 
