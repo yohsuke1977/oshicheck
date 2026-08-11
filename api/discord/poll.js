@@ -5,9 +5,18 @@
 
 const { initAdmin } = require('../_firebase-admin');
 
-const PLATFORM_LABEL = {
-  youtube: 'YouTube', twitch: 'Twitch', twitcasting: 'ツイキャス',
-  showroom: 'SHOWROOM', whowatch: 'ふわっち'
+// 対応PFの正となる定義。PFを追加したら**この1箇所**に足せば、
+// 問い合わせ対象・表示名・視聴URLの3つがすべて追随する（3箇所に散っていて
+// ニコ生・17LIVE・Kickの追加時に取りこぼした。Issue #16）。
+const PLATFORMS = {
+  youtube:     { label: 'YouTube',        url: (id, s) => s.videoId ? `https://www.youtube.com/watch?v=${s.videoId}` : `https://www.youtube.com/channel/${id}` },
+  twitch:      { label: 'Twitch',         url: (id)    => `https://www.twitch.tv/${id}` },
+  twitcasting: { label: 'ツイキャス',      url: (id, s) => s.movieId ? `https://twitcasting.tv/${id}/movie/${s.movieId}` : `https://twitcasting.tv/${id}` },
+  showroom:    { label: 'SHOWROOM',       url: (id)    => `https://www.showroom-live.com/${id}` },
+  whowatch:    { label: 'ふわっち',        url: (id, s) => s.liveId ? `https://whowatch.tv/viewer/${s.liveId}` : `https://whowatch.tv/user/${id}` },
+  niconico:    { label: 'ニコニコ生放送',  url: (id, s) => s.liveId ? `https://live.nicovideo.jp/watch/${s.liveId}` : `https://www.nicovideo.jp/user/${id}` },
+  '17live':    { label: '17LIVE',         url: (id)    => `https://17.live/ja/live/${id}` },
+  kick:        { label: 'Kick',           url: (id)    => `https://kick.com/${id}` },
 };
 
 module.exports = async function handler(req, res) {
@@ -29,11 +38,11 @@ module.exports = async function handler(req, res) {
   if (!items.length) return res.json({ ok: true, watched: 0, posted: 0 });
 
   // 2) プラットフォーム別にまとめて /api/status へ
-  const paramKey = { youtube: 'youtube', twitch: 'twitch', twitcasting: 'twitcasting', showroom: 'showroom', whowatch: 'whowatch' };
+  // /api/status のクエリキーはPFキーと同名
   const params = new URLSearchParams();
-  for (const platform of Object.keys(paramKey)) {
+  for (const platform of Object.keys(PLATFORMS)) {
     const ids = items.filter(i => i.platform === platform).map(i => i.channelId);
-    if (ids.length) params.set(paramKey[platform], [...new Set(ids)].join(','));
+    if (ids.length) params.set(platform, [...new Set(ids)].join(','));
   }
 
   const statusHeaders = {};
@@ -65,17 +74,11 @@ module.exports = async function handler(req, res) {
 };
 
 function streamUrl(item, s) {
-  const { platform, channelId } = item;
-  if (platform === 'youtube') return s.videoId ? `https://www.youtube.com/watch?v=${s.videoId}` : `https://www.youtube.com/channel/${channelId}`;
-  if (platform === 'twitch') return `https://www.twitch.tv/${channelId}`;
-  if (platform === 'twitcasting') return s.movieId ? `https://twitcasting.tv/${channelId}/movie/${s.movieId}` : `https://twitcasting.tv/${channelId}`;
-  if (platform === 'showroom') return `https://www.showroom-live.com/${channelId}`;
-  if (platform === 'whowatch') return s.liveId ? `https://whowatch.tv/viewer/${s.liveId}` : `https://whowatch.tv/user/${channelId}`;
-  return null;
+  return PLATFORMS[item.platform]?.url(item.channelId, s) ?? null;
 }
 
 async function postToDiscord(webhookUrl, item, url) {
-  const label = PLATFORM_LABEL[item.platform] ?? item.platform;
+  const label = PLATFORMS[item.platform]?.label ?? item.platform;
   const mention = process.env.DISCORD_MENTION ? `${process.env.DISCORD_MENTION} ` : '';
   const body = {
     content: `${mention}🔴 **${item.name}** が${label}で配信を開始しました！`,
