@@ -2,7 +2,9 @@
 
 ## コンセプト
 推しのライバーがどのプラットフォームで配信開始しても、まとめて通知を受け取れるChrome拡張。
-YouTube Live・Twitch・ツイキャス・SHOWROOMなどを横断して一元管理する。
+対応8プラットフォーム（YouTube Live / Twitch / ツイキャス / SHOWROOM / ふわっち /
+ニコニコ生放送（ユーザー生放送のみ）/ 17LIVE / Kick）を横断して一元管理する。
+※対応PFの正は `blog-keywords.md` ではなくこの拡張の実装（`api/channel-info.js` のディスパッチ）と `_locales/ja/messages.json`。
 
 **差別化**: 既存競合はTwitch単体か欧米プラットフォームのみ。日本のライバーカルチャー（SHOWROOM・17Live・ツイキャス）に特化したものは存在しない。
 
