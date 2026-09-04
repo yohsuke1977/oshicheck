@@ -58,6 +58,15 @@ module.exports = async function handler(req, res) {
     return res.status(400).send(`Webhook Error: ${lastError && lastError.message}`);
   }
 
+  // テスト用シークレットでも署名は通す（配信失敗を積み上げてエンドポイントを
+  // 無効化されないため）が、Firestoreの書き換えは本番イベントに限る。
+  // これが無いと、テスト用シークレットを知っている者が metadata.uid を仕込んだ
+  // 偽イベントを送るだけで、任意のユーザーをProにできてしまう。
+  if (!event.livemode) {
+    console.log('テストモードのイベントのため状態を変更せず受理:', event.type, event.id);
+    return res.json({ received: true, testMode: true });
+  }
+
   const admin = initAdmin();
   const db = admin.firestore();
 
