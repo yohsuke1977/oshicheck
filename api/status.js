@@ -22,6 +22,16 @@ const OFFLINE = {
 };
 
 let twitchTokenCache = null;
+
+// 上流の取得失敗は「オフライン」として返す（ユーザーに障害を見せないため）。
+// その代わりログに残す。でないとAPIキーの失効や上流の障害に誰も気づけない
+// （2026-10-28、ツイキャスの全面停止がこの経路で完全に見えていなかった）。
+// 401/403/429 は例外にならずに応答が返るので、res.ok も見ること。
+// ログはプラットフォームごと1リクエスト1行にまとめる。
+function warnFetch(platform, failed, total, detail) {
+  if (failed) console.warn(`[status] ${platform} 取得失敗 ${failed}/${total}: ${detail}`);
+}
+const describe = (e) => (e && (e.cause?.code || e.message)) || String(e);
 let kickTokenCache = null;
 
 module.exports = async function handler(req, res) {
@@ -139,6 +149,7 @@ async function fetchYouTube(channelIds) {
 
   // 1) 各チャンネルの最近の動画IDを取得（playlistItems: 1ユニット/ch）。並列化。
   const perChannelVideoIds = {};
+  let failed = 0, detail = '';
   await Promise.all(channelIds.map(async (channelId) => {
     try {
       const playlistId = 'UU' + channelId.slice(2);
@@ -146,11 +157,14 @@ async function fetchYouTube(channelIds) {
         `https://www.googleapis.com/youtube/v3/playlistItems?part=contentDetails&playlistId=${playlistId}&maxResults=5&key=${key}`
       );
       const items = await itemsRes.json();
+      if (!itemsRes.ok) { failed++; detail ||= `HTTP ${itemsRes.status} ${items?.error?.errors?.[0]?.reason || ''}`.trim(); }
       perChannelVideoIds[channelId] = (items.items || []).map(i => i.contentDetails.videoId);
     } catch (e) {
+      failed++; detail ||= describe(e);
       perChannelVideoIds[channelId] = [];
     }
   }));
+  warnFetch('youtube', failed, channelIds.length, detail);
 
   // 2) 全チャンネルの動画IDをまとめて videos.list で問い合わせ（50件/呼び出し・1ユニット/呼び出し）。
   //    以前はチャンネルごとに呼んでいた分をバッチ化しquota消費を約半減。
@@ -163,11 +177,13 @@ async function fetchYouTube(channelIds) {
         `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${batch.join(',')}&key=${key}`
       );
       const videos = await videosRes.json();
+      if (!videosRes.ok) warnFetch('youtube(videos)', batch.length, allIds.length, `HTTP ${videosRes.status} ${videos?.error?.errors?.[0]?.reason || ''}`.trim());
       for (const v of videos.items || []) {
         liveContentById[v.id] = v.snippet.liveBroadcastContent;
       }
     } catch (e) {
       // このバッチは判定不能 → 該当動画はオフライン扱い
+      warnFetch('youtube(videos)', batch.length, allIds.length, describe(e));
     }
   }
 
@@ -195,6 +211,7 @@ async function fetchTwitch(logins) {
     }
   });
   const data = await res.json();
+  if (!res.ok) warnFetch('twitch', logins.length, logins.length, `HTTP ${res.status} ${data?.message || ''}`.trim());
 
   const liveSet = new Set((data.data || []).map(s => s.user_login.toLowerCase()));
   return Object.fromEntries(logins.map(l => [l, { isLive: liveSet.has(l.toLowerCase()) }]));
@@ -206,6 +223,7 @@ async function fetchTwitcasting(userIds) {
   ).toString('base64');
 
   const result = {};
+  let failed = 0, detail = '';
   for (const userId of userIds) {
     try {
       const res = await fetch(`https://apiv2.twitcasting.tv/users/${encodeURIComponent(userId)}`, {
@@ -216,14 +234,17 @@ async function fetchTwitcasting(userIds) {
         }
       });
       const data = await res.json();
+      if (!res.ok) { failed++; detail ||= `HTTP ${res.status} ${data?.error?.message || ''}`.trim(); }
       result[userId] = {
         isLive: data.user?.is_live ?? false,
         movieId: data.user?.last_movie_id ?? null
       };
     } catch (e) {
+      failed++; detail ||= describe(e);
       result[userId] = { isLive: false, movieId: null };
     }
   }
+  warnFetch('twitcasting', failed, userIds.length, detail);
   return result;
 }
 
@@ -236,6 +257,7 @@ async function fetchTwitcasting(userIds) {
 // 常に RELEASED を返すため配信中を判定できない。channel-info 側で追加を弾いている。
 async function fetchNiconico(userIds) {
   const result = {};
+  let failed = 0, detail = '';
   for (const userId of userIds) {
     try {
       const params = new URLSearchParams({
@@ -252,6 +274,7 @@ async function fetchNiconico(userIds) {
         { headers: { 'User-Agent': 'Mozilla/5.0' } }
       );
       const data = await res.json();
+      if (!res.ok) { failed++; detail ||= `HTTP ${res.status}`; }
       const list = data?.data?.programsList ?? [];
       // 配信履歴が空（一度も放送していない）＝オフライン扱い
       if (!list.length) { result[userId] = { isLive: false, liveId: null }; continue; }
@@ -265,9 +288,11 @@ async function fetchNiconico(userIds) {
         thumbnail: provider?.icons?.uri50x50 || undefined,
       };
     } catch (e) {
+      failed++; detail ||= describe(e);
       result[userId] = { isLive: false, liveId: null };
     }
   }
+  warnFetch('niconico', failed, userIds.length, detail);
   return result;
 }
 
@@ -277,13 +302,17 @@ async function fetchNiconico(userIds) {
 // 存在しない roomID は HTTP 520 + {"errorMessage":"stream not found"} を返す。
 async function fetch17Live(roomIds) {
   const result = {};
+  let failed = 0, detail = '';
   for (const roomId of roomIds) {
     try {
       const res = await fetch(`https://api-dsa.17app.co/api/v1/lives/${encodeURIComponent(roomId)}`, {
         headers: { 'User-Agent': 'Mozilla/5.0' }
       });
       const data = await res.json();
-      if (!res.ok || data?.errorMessage) { result[roomId] = { isLive: false }; continue; }
+      if (!res.ok || data?.errorMessage) {
+        if (data?.errorMessage !== 'stream not found') { failed++; detail ||= `HTTP ${res.status} ${data?.errorMessage || ''}`.trim(); }
+        result[roomId] = { isLive: false }; continue;
+      }
 
       const u = data.userInfo || {};
       result[roomId] = {
@@ -292,9 +321,11 @@ async function fetch17Live(roomIds) {
         thumbnail: u.picture ? `https://cdn.17app.co/${u.picture}` : undefined,
       };
     } catch (e) {
+      failed++; detail ||= describe(e);
       result[roomId] = { isLive: false };
     }
   }
+  warnFetch('17live', failed, roomIds.length, detail);
   return result;
 }
 
@@ -320,6 +351,7 @@ async function fetchKick(slugs) {
         headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
       });
       const data = await res.json();
+      if (!res.ok) warnFetch('kick', chunk.length, slugs.length, `HTTP ${res.status} ${data?.message || ''}`.trim());
       for (const ch of data?.data || []) {
         if (!ch.slug) continue;
         result[ch.slug] = {
@@ -330,6 +362,7 @@ async function fetchKick(slugs) {
     }
   } catch (e) {
     // トークン取得失敗等。呼び出し元で OFFLINE にフォールバックされる
+    warnFetch('kick', valid.length, slugs.length, describe(e));
   }
   // 応答に含まれなかった slug（存在しない等）はオフライン扱い
   for (const s of slugs) if (!result[s]) result[s] = { isLive: false };
@@ -361,6 +394,7 @@ async function fetchShowroomLiveSet() {
     const res = await fetch('https://www.showroom-live.com/api/live/onlives', {
       headers: { 'User-Agent': 'Mozilla/5.0' }
     });
+    if (!res.ok) { warnFetch('showroom', 1, 1, `HTTP ${res.status}`); return []; }
     const data = await res.json();
     const liveKeys = [];
     for (const genre of data.onlives || []) {
@@ -370,6 +404,7 @@ async function fetchShowroomLiveSet() {
     }
     return liveKeys;
   } catch (e) {
+    warnFetch('showroom', 1, 1, describe(e));
     return [];
   }
 }
@@ -385,6 +420,7 @@ async function fetchWhowatchLiveMap() {
     const res = await fetch('https://api.whowatch.tv/lives', {
       headers: { 'User-Agent': 'Mozilla/5.0' }
     });
+    if (!res.ok) { warnFetch('whowatch', 1, 1, `HTTP ${res.status}`); return {}; }
     const data = await res.json();
 
     const liveInfoMap = {};
@@ -403,6 +439,7 @@ async function fetchWhowatchLiveMap() {
     }
     return liveInfoMap;
   } catch (e) {
+    warnFetch('whowatch', 1, 1, describe(e));
     return {};
   }
 }
