@@ -21,11 +21,33 @@ async function init() {
 async function initAuth() {
   const user = await fbGetCurrentUser();
   if (user) {
+    // まず手元の値で描画し、サーバーのプランが違っていたら描き直す（通信を待たせない）
     await showSignedIn(user);
+    await refreshPlanAndRerender();
   } else {
     showSignedOut();
   }
 }
+
+// サーバー側のプランを読み直し、手元と違えば画面を描き直す（Issue #17）
+let lastPlanRefresh = 0;
+async function refreshPlanAndRerender() {
+  lastPlanRefresh = Date.now();
+  const { plan: before } = await chrome.storage.local.get('plan');
+  const after = await fsRefreshPlan();
+  if (!after || after === before) return;
+  const user = await fbGetCurrentUser();
+  if (user) await showSignedIn(user);
+}
+
+// 決済ページ（別タブ）から設定画面に戻ってきたときにも読み直す。
+// 支払い直後に「Proにしたのに増やせない」とならないように。連打を避けて10秒に1回まで。
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState !== 'visible') return;
+  if (Date.now() - lastPlanRefresh < 10_000) return;
+  if (!(await fbGetCurrentUser())) return;
+  await refreshPlanAndRerender();
+});
 
 function showSignedOut() {
   document.getElementById('authSignedOut').style.display = '';

@@ -113,6 +113,37 @@ async function fsGetPlan(uid) {
   return data.fields?.value?.stringValue || 'free';
 }
 
+// サーバー側のプランを読み直して chrome.storage.local の plan に反映する（Issue #17）。
+// Proへの昇格・解約はwebhookがFirestoreを書き換えるだけなので、拡張側が読み直さない限り
+// 手元の plan はログイン時の値のまま変わらない。
+// 戻り値: 'pro' / 'free' / null（判定できなかった）。
+// 通信やトークンの失敗で null のときは手元の値を触らない。読めなかっただけで Pro を free に落とさないため。
+async function fsRefreshPlan() {
+  try {
+    const { auth } = await chrome.storage.local.get('auth');
+    if (!auth?.uid) return null;
+    const idToken = await fbGetIdToken();
+    if (!idToken) return null;
+
+    const res = await fetch(`${FS_BASE()}/users/${auth.uid}/subscription/plan`, {
+      headers: { 'Authorization': `Bearer ${idToken}` }
+    });
+    let plan;
+    if (res.ok) {
+      const data = await res.json();
+      plan = data.fields?.value?.stringValue === 'pro' ? 'pro' : 'free';
+    } else if (res.status === 404) {
+      plan = 'free';  // プランのドキュメント自体が無い＝一度も課金していない
+    } else {
+      return null;
+    }
+    await chrome.storage.local.set({ plan });
+    return plan;
+  } catch (e) {
+    return null;
+  }
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 async function _saveAuth(data) {

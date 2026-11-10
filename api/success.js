@@ -17,7 +17,7 @@ module.exports = function handler(req, res) {
   <div class="card">
     <div class="badge">Pro プラン</div>
     <h1>アップグレード完了！</h1>
-    <p>推し通知 Proへようこそ。<br>拡張機能を再起動するとProプランが反映されます。</p>
+    <p>推し通知 Proへようこそ。<br>推し通知の設定画面を開き直すとProプランが反映されます。</p>
     <p style="color:#6e6e8a;font-size:13px">このタブは閉じて構いません。</p>
   </div>
 </body>

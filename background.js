@@ -1,4 +1,4 @@
-importScripts('analytics.js');
+importScripts('analytics.js', 'firebase.js');
 
 const API_BASE = 'https://oshicheck.vercel.app';
 const ALARM_NAME = 'oshicheck-poll';
@@ -16,6 +16,8 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 });
 
 chrome.runtime.onStartup.addListener(async () => {
+  // ブラウザ起動時にプランを読み直す。設定画面を開かない人でも、解約・昇格がここで反映される（Issue #17）
+  await fsRefreshPlan();
   await checkAllChannels();
 });
 
