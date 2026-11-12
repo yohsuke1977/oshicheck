@@ -1,6 +1,6 @@
 // POST /api/webhook  (Stripe webhook)
 // Handles checkout.session.completed → sets plan to 'pro' in Firestore
-// Handles customer.subscription.deleted → sets plan back to 'free'
+// Handles customer.subscription.deleted → sets plan back to 'free'（subscriptionのmetadata.uidで本人を特定）
 
 const crypto = require('crypto');
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
@@ -88,17 +88,35 @@ module.exports = async function handler(req, res) {
     }
   }
 
+  // 解約: サブスクのmetadataに入れたuidで本人を特定する（Issue #18）。
+  // 以前は stripeCustomerId で全ユーザーを横断検索していたが、その検索に必要な
+  // コレクショングループ索引が無く必ず FAILED_PRECONDITION で失敗し、500を返していた。
+  // 共有アカウントの他製品の解約でも毎回500になり、Stripeに受け口ごと止められる危険があった。
   if (event.type === 'customer.subscription.deleted') {
     const sub = event.data.object;
-    const snapshot = await db.collectionGroup('subscription')
-      .where('stripeCustomerId', '==', sub.customer)
-      .limit(1)
-      .get();
-    if (!snapshot.empty) {
-      await snapshot.docs[0].ref.set({
-        value: 'free',
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-      }, { merge: true });
+    const uid = sub.metadata?.uid;
+    if (!uid) {
+      // 他製品（Leaguru・レジあと等）の解約。推し通知とは無関係なので受け流す
+      console.log('推し通知以外の解約のためスキップ:', sub.id);
+      return res.json({ received: true });
+    }
+    try {
+      const ref = db.doc(`users/${uid}/subscription/plan`);
+      const cur = (await ref.get()).data();
+      // 解約後に新しく契約し直していた場合、古いサブスクの解約通知で無料に戻さない
+      if (cur?.stripeSubscriptionId && cur.stripeSubscriptionId !== sub.id) {
+        console.log('別のサブスクが有効なため無料に戻さない:', uid, sub.id, '現在:', cur.stripeSubscriptionId);
+      } else {
+        await ref.set({
+          value: 'free',
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+        console.log('解約によりfreeに戻した uid:', uid, sub.id);
+      }
+    } catch (e) {
+      // Firestoreの一時的な失敗。500を返してStripeにやり直してもらう
+      console.error('解約の反映に失敗:', uid, sub.id, e.message);
+      return res.status(500).json({ error: 'downgrade failed' });
     }
   }
 

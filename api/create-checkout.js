@@ -27,6 +27,9 @@ module.exports = async function handler(req, res) {
       success_url: `${process.env.BASE_URL}/api/success`,
       cancel_url: `${process.env.BASE_URL}/api/cancel`,
       metadata: { uid },
+      // サブスク本体にもuidを持たせる。解約通知（customer.subscription.deleted）では
+      // checkoutのmetadataが届かないため、これが無いと誰の解約か分からない（Issue #18）
+      subscription_data: { metadata: { uid } },
       locale: 'ja'
     });
     res.redirect(303, session.url);
