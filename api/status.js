@@ -4,13 +4,25 @@
 // B1第3層（コスト脱ユーザー数依存）: Upstashが設定されていれば、生存状態をRedisに
 // TTLキャッシュする。同じチャンネルを何人が追っていてもTTL窓内の上流フェッチは1回だけ
 // → YouTube等のAPIコストがユーザー数と無関係になる。
-// Upstash未設定なら従来通り毎回直接フェッチ（フェイルオープン）。
+// Upstash未設定、または落ちているときは毎回直接フェッチ（フェイルオープン）。
+//
+// 取得に失敗したチャンネルは「オフライン」ではなく結果から外す（#19）。
+// 拡張・Discordボットとも、結果に無いチャンネルは前回の状態を保つ（`if (s)`）。
+// オフラインで返すと「配信中 → 失敗でオフライン → 次の巡回で配信中」となり、
+// 同じ配信の開始通知が2回鳴る。オフラインで返すのは「配信していない／存在しない」と
+// 分かったときだけ。
+// ただし失敗が長く続くと拡張は配信中のまま固まるので、最後に取得できてから HOLD 秒を
+// 超えたら（＝Redisに記録が無ければ）オフラインで返す（2026-11 のツイキャスは2週間失敗し続けた）。
 
 const { getRedis } = require('./_redis');
 
-// 秒。ミス時の上流フェッチ＆JSONパース（=Active CPUの主因）を減らすため180に設定。
+// 秒。この間はRedisの値をそのまま返す（上流を叩かない）。
+// ミス時の上流フェッチ＆JSONパース（=Active CPUの主因）を減らすため180に設定。
 // 拡張のポーリングは10分（v0.1.5〜）なので、通知遅延への影響は小さい。
 const TTL = Number(process.env.STATUS_CACHE_TTL) || 180;
+// 秒。Redisのキー自体の寿命。最後に取得できてからこの時間内の失敗は「分からない」
+// （結果から外す）、超えたら記録が消えているのでオフラインで返す。
+const HOLD = Number(process.env.STATUS_HOLD_SEC) || 1800;
 
 const OFFLINE = {
   youtube:     { isLive: false, videoId: null },
@@ -22,17 +34,20 @@ const OFFLINE = {
 };
 
 let twitchTokenCache = null;
+let kickTokenCache = null;
 
-// 上流の取得失敗は「オフライン」として返す（ユーザーに障害を見せないため）。
-// その代わりログに残す。でないとAPIキーの失効や上流の障害に誰も気づけない
-// （2026-10-28、ツイキャスの全面停止がこの経路で完全に見えていなかった）。
+// 上流の取得失敗はログに残す。でないとAPIキーの失効や上流の障害に誰も気づけない
+// （2026-10-28〜、ツイキャスの全面停止と認証情報リセットはこのログで分かった）。
 // 401/403/429 は例外にならずに応答が返るので、res.ok も見ること。
 // ログはプラットフォームごと1リクエスト1行にまとめる。
 function warnFetch(platform, failed, total, detail) {
   if (failed) console.warn(`[status] ${platform} 取得失敗 ${failed}/${total}: ${detail}`);
 }
+function warnRedis(op, e) {
+  console.warn(`[status] redis ${op} 失敗（直接取得に切り替え）: ${describe(e)}`);
+}
 const describe = (e) => (e && (e.cause?.code || e.message)) || String(e);
-let kickTokenCache = null;
+const httpError = (res, msg) => new Error(`HTTP ${res.status} ${msg || ''}`.trim());
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -57,42 +72,52 @@ module.exports = async function handler(req, res) {
     '17live':    split(req.query['17live']),
     kick:        split(req.query.kick),
   };
-  const result = {};
   const redis = getRedis();
 
-  try {
-    if (redis) {
-      // --- キャッシュ経路（コスト脱ユーザー数依存）---
-      if (ids.youtube.length)     result.youtube     = await cachedPerChannel(redis, 'yt', ids.youtube, fetchYouTube, OFFLINE.youtube);
-      if (ids.twitch.length)      result.twitch      = await cachedPerChannel(redis, 'tw', ids.twitch, fetchTwitch, OFFLINE.twitch);
-      if (ids.twitcasting.length) result.twitcasting = await cachedPerChannel(redis, 'tc', ids.twitcasting, fetchTwitcasting, OFFLINE.twitcasting);
-      if (ids.niconico.length)    result.niconico    = await cachedPerChannel(redis, 'nc', ids.niconico, fetchNiconico, OFFLINE.niconico);
-      if (ids['17live'].length)   result['17live']   = await cachedPerChannel(redis, 'sl', ids['17live'], fetch17Live, OFFLINE['17live']);
-      if (ids.kick.length)        result.kick        = await cachedPerChannel(redis, 'kc', ids.kick, fetchKick, OFFLINE.kick);
-      // SHOWROOM/ふわっちは1フェッチで全ライブ一覧が返る → 一覧を丸ごと1キーにキャッシュ（定数コスト）
-      if (ids.showroom.length)    result.showroom    = buildShowroom(await cachedShared(redis, 'sr:onlives', fetchShowroomLiveSet), ids.showroom);
-      if (ids.whowatch.length)    result.whowatch    = buildWhowatch(await cachedShared(redis, 'ww:onlives', fetchWhowatchLiveMap), ids.whowatch);
-      // CDNにも載せる。同一ユーザーのポーリングはクエリが毎回同じなので、CDNヒット時は
-      // 関数の起動自体が発生しない（Fluid Active CPUゼロ）。CDN=ユーザー内の重複排除、
-      // Redis=ユーザー間の重複排除で相補的。旧バージョン(2分ポーリング)の呼び出し削減に特に効く。
-      res.setHeader('Cache-Control', 's-maxage=240, stale-while-revalidate=120');
-    } else {
-      // --- 直接フェッチ経路（従来動作・Upstash未設定時のフォールバック）---
-      if (ids.youtube.length)     result.youtube     = await fetchYouTube(ids.youtube);
-      if (ids.twitch.length)      result.twitch      = await fetchTwitch(ids.twitch);
-      if (ids.twitcasting.length) result.twitcasting = await fetchTwitcasting(ids.twitcasting);
-      if (ids.niconico.length)    result.niconico    = await fetchNiconico(ids.niconico);
-      if (ids['17live'].length)   result['17live']   = await fetch17Live(ids['17live']);
-      if (ids.kick.length)        result.kick        = await fetchKick(ids.kick);
-      if (ids.showroom.length)    result.showroom    = buildShowroom(await fetchShowroomLiveSet(), ids.showroom);
-      if (ids.whowatch.length)    result.whowatch    = buildWhowatch(await fetchWhowatchLiveMap(), ids.whowatch);
-      res.setHeader('Cache-Control', 's-maxage=240, stale-while-revalidate=120');
-    }
-  } catch (e) {
-    console.error(e);
-    return res.status(500).json({ error: e.message });
-  }
+  // チャンネル単位で取得するPF（Redisキーの接頭辞と取得関数）
+  const perChannel = [
+    ['youtube',     'yt', fetchYouTube],
+    ['twitch',      'tw', fetchTwitch],
+    ['twitcasting', 'tc', fetchTwitcasting],
+    ['niconico',    'nc', fetchNiconico],
+    ['17live',      'sl', fetch17Live],
+    ['kick',        'kc', fetchKick],
+  ];
+  // SHOWROOM/ふわっちは1フェッチで全ライブ一覧が返る → 一覧を丸ごと1キーにキャッシュ（定数コスト）
+  const shared = [
+    ['showroom', 'sr:onlives', fetchShowroomLiveSet, [], buildShowroom],
+    ['whowatch', 'ww:onlives', fetchWhowatchLiveMap, {}, buildWhowatch],
+  ];
 
+  // PFごとに独立して実行し、1つの失敗がほかのPFの結果を巻き込まないようにする（#19）
+  const tasks = [
+    ...perChannel.filter(([p]) => ids[p].length).map(([p, prefix, fn]) => [p, () =>
+      redis
+        ? cachedPerChannel(redis, p, prefix, ids[p], fn)
+        : fetchSafe(p, fn, ids[p]),
+    ]),
+    ...shared.filter(([p]) => ids[p].length).map(([p, key, fn, empty, build]) => [p, async () => {
+      const raw = redis ? await cachedShared(redis, key, fn, empty) : await fn();
+      return raw == null ? undefined : build(raw, ids[p]);
+    }]),
+  ];
+
+  const result = {};
+  const settled = await Promise.allSettled(tasks.map(([, run]) => run()));
+  settled.forEach((s, i) => {
+    const platform = tasks[i][0];
+    if (s.status === 'fulfilled') {
+      if (s.value) result[platform] = s.value;
+    } else {
+      // ここに来るのは想定外の例外だけ（取得失敗は各層で吸収している）。このPFだけ外す
+      console.error(`[status] ${platform} 予期しないエラー:`, s.reason);
+    }
+  });
+
+  // CDNにも載せる。同一ユーザーのポーリングはクエリが毎回同じなので、CDNヒット時は
+  // 関数の起動自体が発生しない（Fluid Active CPUゼロ）。CDN=ユーザー内の重複排除、
+  // Redis=ユーザー間の重複排除で相補的。旧バージョン(2分ポーリング)の呼び出し削減に特に効く。
+  res.setHeader('Cache-Control', 's-maxage=240, stale-while-revalidate=120');
   res.json(result);
 };
 
@@ -100,55 +125,105 @@ function split(v) {
   return v ? v.split(',').filter(Boolean) : [];
 }
 
+// 取得関数は「分かったチャンネルだけ」を返す。例外は全チャンネル不明として扱う。
+async function fetchSafe(platform, fetchFn, ids) {
+  try {
+    return (await fetchFn(ids)) || {};
+  } catch (e) {
+    warnFetch(platform, ids.length, ids.length, describe(e));
+    return {};
+  }
+}
+
 // ---------------------------------------------------------------------------
 // キャッシュ層
+// 値は { s: 状態, t: 取得時刻(ms) }。t から TTL 秒以内なら新鮮、キーは HOLD 秒で消える。
+// （旧形式＝状態オブジェクトそのものは t が無いので記録なし扱い→取り直して上書きされる）
 // ---------------------------------------------------------------------------
 
-// チャンネル単位でキャッシュ。ヒットは即返し、ミス分だけ fetchFn でまとめて取得しキャッシュ。
-async function cachedPerChannel(redis, prefix, ids, fetchFn, offline) {
-  const result = {};
+const hasRecord = (c) => c != null && typeof c === 'object' && typeof c.t === 'number';
+
+// チャンネル単位でキャッシュ。新鮮なものは即返し、それ以外だけ fetchFn でまとめて取得しキャッシュ。
+async function cachedPerChannel(redis, platform, prefix, ids, fetchFn) {
   const keys = ids.map(id => `${prefix}:${id}`);
-  const cached = keys.length ? await redis.mget(...keys) : [];
+  let cached;
+  try {
+    cached = await redis.mget(...keys);
+  } catch (e) {
+    warnRedis('mget', e);
+    return fetchSafe(platform, fetchFn, ids);
+  }
 
+  const now = Date.now();
+  const result = {};
   const missing = [];
+  const held = new Set();   // 期限切れだが最近まで取れていた＝失敗しても「分からない」で済ませる
   ids.forEach((id, i) => {
-    if (cached[i] != null) result[id] = cached[i];
-    else missing.push(id);
-  });
-
-  if (missing.length) {
-    const fresh = await fetchFn(missing);
-    const pipe = redis.pipeline();
-    for (const id of missing) {
-      const state = fresh[id] ?? offline;
-      result[id] = state;
-      pipe.set(`${prefix}:${id}`, state, { ex: TTL });
+    const c = cached[i];
+    if (hasRecord(c)) {
+      if (now - c.t < TTL * 1000) { result[id] = c.s; return; }
+      held.add(id);
     }
-    await pipe.exec();
+    missing.push(id);
+  });
+  if (!missing.length) return result;
+
+  const fresh = await fetchSafe(platform, fetchFn, missing);
+  const pipe = redis.pipeline();
+  let writes = 0;
+  for (const id of missing) {
+    const state = fresh[id];
+    if (state) {
+      result[id] = state;
+      pipe.set(`${prefix}:${id}`, { s: state, t: now }, { ex: HOLD });
+      writes++;
+    } else if (!held.has(id)) {
+      // HOLD 秒以上取れていない（または初めて）→ 配信中のまま固まらないようオフラインで返す。
+      // Redisには書かない（書くと記録が延命され、次も「分からない」になってしまう）
+      result[id] = OFFLINE[platform];
+    }
+    // held の失敗は結果から外す → 拡張は前回の状態を保つ
+  }
+  if (writes) {
+    try { await pipe.exec(); } catch (e) { warnRedis('set', e); }
   }
   return result;
 }
 
-// 全ライブ一覧を丸ごと1キーにキャッシュ（SHOWROOM/ふわっち）。ミス時のみ上流を1回叩く。
-async function cachedShared(redis, cacheKey, fetchRaw) {
-  let raw = await redis.get(cacheKey);
-  if (raw == null) {
-    raw = await fetchRaw();
-    await redis.set(cacheKey, raw, { ex: TTL });
+// 全ライブ一覧を丸ごと1キーにキャッシュ（SHOWROOM/ふわっち）。新鮮でなければ上流を1回叩く。
+// 戻り値 null は「分からない」（呼び出し側でそのPFを結果から外す）。
+async function cachedShared(redis, cacheKey, fetchRaw, empty) {
+  let c;
+  try {
+    c = await redis.get(cacheKey);
+  } catch (e) {
+    warnRedis('get', e);
+    return fetchRaw();
+  }
+  const now = Date.now();
+  if (hasRecord(c) && now - c.t < TTL * 1000) return c.raw;
+
+  const raw = await fetchRaw();
+  if (raw == null) return hasRecord(c) ? null : empty;
+  try {
+    await redis.set(cacheKey, { raw, t: now }, { ex: HOLD });
+  } catch (e) {
+    warnRedis('set', e);
   }
   return raw;
 }
 
 // ---------------------------------------------------------------------------
 // 上流フェッチ（プラットフォーム別）
+// 返すのは状態が分かったチャンネルだけ。失敗したチャンネルは入れない。
 // ---------------------------------------------------------------------------
 
 async function fetchYouTube(channelIds) {
   const key = process.env.YOUTUBE_API_KEY;
-  const result = Object.fromEntries(channelIds.map(id => [id, { isLive: false, videoId: null }]));
 
   // 1) 各チャンネルの最近の動画IDを取得（playlistItems: 1ユニット/ch）。並列化。
   const perChannelVideoIds = {};
+  const unknownChannels = new Set();
   let failed = 0, detail = '';
   await Promise.all(channelIds.map(async (channelId) => {
     try {
@@ -156,12 +231,14 @@ async function fetchYouTube(channelIds) {
       const itemsRes = await fetch(
         `https://www.googleapis.com/youtube/v3/playlistItems?part=contentDetails&playlistId=${playlistId}&maxResults=5&key=${key}`
       );
+      // 404 = アップロード再生リストが無い（チャンネルが存在しない）→ 配信していないと分かる
+      if (itemsRes.status === 404) { perChannelVideoIds[channelId] = []; return; }
       const items = await itemsRes.json();
-      if (!itemsRes.ok) { failed++; detail ||= `HTTP ${itemsRes.status} ${items?.error?.errors?.[0]?.reason || ''}`.trim(); }
+      if (!itemsRes.ok) throw httpError(itemsRes, items?.error?.errors?.[0]?.reason);
       perChannelVideoIds[channelId] = (items.items || []).map(i => i.contentDetails.videoId);
     } catch (e) {
       failed++; detail ||= describe(e);
-      perChannelVideoIds[channelId] = [];
+      unknownChannels.add(channelId);
     }
   }));
   warnFetch('youtube', failed, channelIds.length, detail);
@@ -170,6 +247,7 @@ async function fetchYouTube(channelIds) {
   //    以前はチャンネルごとに呼んでいた分をバッチ化しquota消費を約半減。
   const allIds = [...new Set(Object.values(perChannelVideoIds).flat())];
   const liveContentById = {};
+  const unknownVideos = new Set();
   for (let i = 0; i < allIds.length; i += 50) {
     const batch = allIds.slice(i, i + 50);
     try {
@@ -177,44 +255,54 @@ async function fetchYouTube(channelIds) {
         `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${batch.join(',')}&key=${key}`
       );
       const videos = await videosRes.json();
-      if (!videosRes.ok) warnFetch('youtube(videos)', batch.length, allIds.length, `HTTP ${videosRes.status} ${videos?.error?.errors?.[0]?.reason || ''}`.trim());
+      if (!videosRes.ok) throw httpError(videosRes, videos?.error?.errors?.[0]?.reason);
       for (const v of videos.items || []) {
         liveContentById[v.id] = v.snippet.liveBroadcastContent;
       }
     } catch (e) {
-      // このバッチは判定不能 → 該当動画はオフライン扱い
+      // このバッチは判定不能 → 該当動画を持つチャンネルは（ほかに配信中の動画が無ければ）不明
       warnFetch('youtube(videos)', batch.length, allIds.length, describe(e));
+      batch.forEach(v => unknownVideos.add(v));
     }
   }
 
   // 3) チャンネルごとに、最近の動画のいずれかが live か判定（playlist順で最初のものを採用）
+  const result = {};
   for (const channelId of channelIds) {
-    for (const vid of perChannelVideoIds[channelId] || []) {
-      if (liveContentById[vid] === 'live') {
-        result[channelId] = { isLive: true, videoId: vid };
-        break;
-      }
-    }
+    if (unknownChannels.has(channelId)) continue;
+    const vids = perChannelVideoIds[channelId];
+    const liveVid = vids.find(v => liveContentById[v] === 'live');
+    if (liveVid) result[channelId] = { isLive: true, videoId: liveVid };
+    else if (!vids.some(v => unknownVideos.has(v))) result[channelId] = { isLive: false, videoId: null };
   }
-
   return result;
 }
 
 async function fetchTwitch(logins) {
-  const token = await getTwitchToken();
-  const query = logins.map(l => `user_login=${encodeURIComponent(l)}`).join('&');
-
-  const res = await fetch(`https://api.twitch.tv/helix/streams?${query}`, {
-    headers: {
-      'Client-Id': process.env.TWITCH_CLIENT_ID,
-      'Authorization': `Bearer ${token}`
+  const token = await getTwitchToken();   // 失敗は例外 → fetchSafe で全チャンネル不明
+  const result = {};
+  let failed = 0, detail = '';
+  // helix/streams は user_login 最大100件/リクエスト
+  for (let i = 0; i < logins.length; i += 100) {
+    const chunk = logins.slice(i, i + 100);
+    try {
+      const query = chunk.map(l => `user_login=${encodeURIComponent(l)}`).join('&');
+      const res = await fetch(`https://api.twitch.tv/helix/streams?${query}`, {
+        headers: {
+          'Client-Id': process.env.TWITCH_CLIENT_ID,
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) throw httpError(res, data?.message);
+      const liveSet = new Set((data.data || []).map(s => s.user_login.toLowerCase()));
+      for (const l of chunk) result[l] = { isLive: liveSet.has(l.toLowerCase()) };
+    } catch (e) {
+      failed += chunk.length; detail ||= describe(e);
     }
-  });
-  const data = await res.json();
-  if (!res.ok) warnFetch('twitch', logins.length, logins.length, `HTTP ${res.status} ${data?.message || ''}`.trim());
-
-  const liveSet = new Set((data.data || []).map(s => s.user_login.toLowerCase()));
-  return Object.fromEntries(logins.map(l => [l, { isLive: liveSet.has(l.toLowerCase()) }]));
+  }
+  warnFetch('twitch', failed, logins.length, detail);
+  return result;
 }
 
 async function fetchTwitcasting(userIds) {
@@ -233,15 +321,16 @@ async function fetchTwitcasting(userIds) {
           'Accept': 'application/json'
         }
       });
+      // 404 = ユーザーが存在しない → 配信していないと分かる
+      if (res.status === 404) { result[userId] = { isLive: false, movieId: null }; continue; }
       const data = await res.json();
-      if (!res.ok) { failed++; detail ||= `HTTP ${res.status} ${data?.error?.message || ''}`.trim(); }
+      if (!res.ok || !data.user) throw httpError(res, data?.error?.message);
       result[userId] = {
-        isLive: data.user?.is_live ?? false,
-        movieId: data.user?.last_movie_id ?? null
+        isLive: data.user.is_live === true,
+        movieId: data.user.last_movie_id ?? null
       };
     } catch (e) {
       failed++; detail ||= describe(e);
-      result[userId] = { isLive: false, movieId: null };
     }
   }
   warnFetch('twitcasting', failed, userIds.length, detail);
@@ -274,9 +363,9 @@ async function fetchNiconico(userIds) {
         { headers: { 'User-Agent': 'Mozilla/5.0' } }
       );
       const data = await res.json();
-      if (!res.ok) { failed++; detail ||= `HTTP ${res.status}`; }
-      const list = data?.data?.programsList ?? [];
-      // 配信履歴が空（一度も放送していない）＝オフライン扱い
+      if (!res.ok || !Array.isArray(data?.data?.programsList)) throw httpError(res);
+      const list = data.data.programsList;
+      // 配信履歴が空（一度も放送していない・存在しないユーザー）＝オフライン
       if (!list.length) { result[userId] = { isLive: false, liveId: null }; continue; }
 
       const onAir = list.find(p => p.program?.schedule?.status === 'ON_AIR');
@@ -289,7 +378,6 @@ async function fetchNiconico(userIds) {
       };
     } catch (e) {
       failed++; detail ||= describe(e);
-      result[userId] = { isLive: false, liveId: null };
     }
   }
   warnFetch('niconico', failed, userIds.length, detail);
@@ -309,10 +397,9 @@ async function fetch17Live(roomIds) {
         headers: { 'User-Agent': 'Mozilla/5.0' }
       });
       const data = await res.json();
-      if (!res.ok || data?.errorMessage) {
-        if (data?.errorMessage !== 'stream not found') { failed++; detail ||= `HTTP ${res.status} ${data?.errorMessage || ''}`.trim(); }
-        result[roomId] = { isLive: false }; continue;
-      }
+      // 存在しない roomID → 配信していないと分かる
+      if (data?.errorMessage === 'stream not found') { result[roomId] = { isLive: false }; continue; }
+      if (!res.ok || data?.errorMessage) throw httpError(res, data?.errorMessage);
 
       const u = data.userInfo || {};
       result[roomId] = {
@@ -322,7 +409,6 @@ async function fetch17Live(roomIds) {
       };
     } catch (e) {
       failed++; detail ||= describe(e);
-      result[roomId] = { isLive: false };
     }
   }
   warnFetch('17live', failed, roomIds.length, detail);
@@ -339,33 +425,44 @@ const KICK_SLUG_RE = /^[A-Za-z0-9_-]{1,25}$/;
 async function fetchKick(slugs) {
   const result = {};
   // 不正な形式のslugが1つでも混ざるとリクエスト全体が400になり、同じバッチの
-  // 他チャンネルまでオフライン判定に巻き込まれる。事前に弾いて隔離する。
-  const valid = slugs.filter(s => KICK_SLUG_RE.test(s));
+  // 他チャンネルまで巻き込まれる。事前に弾いて隔離する（存在し得ない＝オフライン）。
+  const valid = [];
+  for (const s of slugs) {
+    if (KICK_SLUG_RE.test(s)) valid.push(s);
+    else result[s] = { isLive: false };
+  }
+  if (!valid.length) return result;
+
+  let token;
   try {
-    const token = await getKickToken();
-    // 50件ずつに分割（API上限）
-    for (let i = 0; i < valid.length; i += 50) {
-      const chunk = valid.slice(i, i + 50);
+    token = await getKickToken();
+  } catch (e) {
+    warnFetch('kick', valid.length, slugs.length, describe(e));
+    return result;
+  }
+
+  // 50件ずつに分割（API上限）
+  for (let i = 0; i < valid.length; i += 50) {
+    const chunk = valid.slice(i, i + 50);
+    try {
       const qs = chunk.map(s => `slug=${encodeURIComponent(s)}`).join('&');
       const res = await fetch(`https://api.kick.com/public/v1/channels?${qs}`, {
         headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
       });
       const data = await res.json();
-      if (!res.ok) warnFetch('kick', chunk.length, slugs.length, `HTTP ${res.status} ${data?.message || ''}`.trim());
-      for (const ch of data?.data || []) {
-        if (!ch.slug) continue;
-        result[ch.slug] = {
-          isLive: ch.stream?.is_live === true,
-          title: ch.stream_title || undefined,
-        };
+      if (!res.ok) throw httpError(res, data?.message);
+      const bySlug = new Map((data?.data || []).filter(ch => ch.slug).map(ch => [ch.slug.toLowerCase(), ch]));
+      for (const s of chunk) {
+        const ch = bySlug.get(s.toLowerCase());
+        // 応答に含まれなかった slug（存在しない）はオフライン
+        result[s] = ch
+          ? { isLive: ch.stream?.is_live === true, title: ch.stream_title || undefined }
+          : { isLive: false };
       }
+    } catch (e) {
+      warnFetch('kick', chunk.length, slugs.length, describe(e));
     }
-  } catch (e) {
-    // トークン取得失敗等。呼び出し元で OFFLINE にフォールバックされる
-    warnFetch('kick', valid.length, slugs.length, describe(e));
   }
-  // 応答に含まれなかった slug（存在しない等）はオフライン扱い
-  for (const s of slugs) if (!result[s]) result[s] = { isLive: false };
   return result;
 }
 
@@ -388,16 +485,17 @@ async function getKickToken() {
   return data.access_token;
 }
 
-// SHOWROOM: 全ライブ一覧を1回取得し、配信中の room_url_key 配列を返す。
+// SHOWROOM: 全ライブ一覧を1回取得し、配信中の room_url_key 配列を返す。失敗は null。
 async function fetchShowroomLiveSet() {
   try {
     const res = await fetch('https://www.showroom-live.com/api/live/onlives', {
       headers: { 'User-Agent': 'Mozilla/5.0' }
     });
-    if (!res.ok) { warnFetch('showroom', 1, 1, `HTTP ${res.status}`); return []; }
+    if (!res.ok) throw httpError(res);
     const data = await res.json();
+    if (!Array.isArray(data?.onlives)) throw new Error('onlives is not an array');
     const liveKeys = [];
-    for (const genre of data.onlives || []) {
+    for (const genre of data.onlives) {
       for (const live of genre.lives || []) {
         if (live.room_url_key) liveKeys.push(live.room_url_key);
       }
@@ -405,7 +503,7 @@ async function fetchShowroomLiveSet() {
     return liveKeys;
   } catch (e) {
     warnFetch('showroom', 1, 1, describe(e));
-    return [];
+    return null;
   }
 }
 
@@ -414,14 +512,16 @@ function buildShowroom(liveKeys, roomUrlKeys) {
   return Object.fromEntries(roomUrlKeys.map(k => [k, { isLive: liveSet.has(k) }]));
 }
 
-// ふわっち: 全ライブ一覧を1回取得し、user_path → {liveId,name,thumbnail} のマップを返す。
+// ふわっち: 全ライブ一覧を1回取得し、user_path → {liveId,name,thumbnail} のマップを返す。失敗は null。
 async function fetchWhowatchLiveMap() {
   try {
     const res = await fetch('https://api.whowatch.tv/lives', {
       headers: { 'User-Agent': 'Mozilla/5.0' }
     });
-    if (!res.ok) { warnFetch('whowatch', 1, 1, `HTTP ${res.status}`); return {}; }
+    if (!res.ok) throw httpError(res);
     const data = await res.json();
+    // 2026-11-13 に配列でない応答が返った（data is not iterable）
+    if (!Array.isArray(data)) throw new Error('data is not an array');
 
     const liveInfoMap = {};
     for (const cat of data) {
@@ -440,7 +540,7 @@ async function fetchWhowatchLiveMap() {
     return liveInfoMap;
   } catch (e) {
     warnFetch('whowatch', 1, 1, describe(e));
-    return {};
+    return null;
   }
 }
 
@@ -468,6 +568,7 @@ async function getTwitchToken() {
     })
   });
   const data = await res.json();
+  if (!data.access_token) throw httpError(res, data?.message || 'Twitch token failed');
   twitchTokenCache = { access_token: data.access_token, expiresAt: Date.now() + data.expires_in * 1000 };
   return data.access_token;
 }
