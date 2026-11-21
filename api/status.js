@@ -41,8 +41,13 @@ let kickTokenCache = null;
 // 401/403/429 は例外にならずに応答が返るので、res.ok も見ること。
 // ログはプラットフォームごと1リクエスト1行にまとめる。
 function warnFetch(platform, failed, total, detail) {
-  if (failed) console.warn(`[status] ${platform} 取得失敗 ${failed}/${total}: ${detail}`);
+  if (!failed) return;
+  console.warn(`[status] ${platform} 取得失敗 ${failed}/${total}: ${detail}`);
+  lastDetail[platform.split('(')[0]] = String(detail).slice(0, 200);
 }
+// 直近の失敗理由（PFごと）。死活記録（recordHealth）に添える。
+// 同じインスタンスの並行リクエストで入れ違うことはあるが、表示用なので構わない。
+const lastDetail = {};
 function warnRedis(op, e) {
   console.warn(`[status] redis ${op} 失敗（直接取得に切り替え）: ${describe(e)}`);
 }
@@ -97,7 +102,7 @@ module.exports = async function handler(req, res) {
         : fetchSafe(p, fn, ids[p]),
     ]),
     ...shared.filter(([p]) => ids[p].length).map(([p, key, fn, empty, build]) => [p, async () => {
-      const raw = redis ? await cachedShared(redis, key, fn, empty) : await fn();
+      const raw = redis ? await cachedShared(redis, p, key, fn, empty) : await fn();
       return raw == null ? undefined : build(raw, ids[p]);
     }]),
   ];
@@ -169,6 +174,12 @@ async function cachedPerChannel(redis, platform, prefix, ids, fetchFn) {
   if (!missing.length) return result;
 
   const fresh = await fetchSafe(platform, fetchFn, missing);
+  const got = missing.filter(id => fresh[id]);
+  await recordHealth(redis, platform, {
+    ok: got.length > 0,
+    failed: got.length < missing.length,
+    live: got.some(id => fresh[id].isLive),
+  });
   const pipe = redis.pipeline();
   let writes = 0;
   for (const id of missing) {
@@ -192,7 +203,7 @@ async function cachedPerChannel(redis, platform, prefix, ids, fetchFn) {
 
 // 全ライブ一覧を丸ごと1キーにキャッシュ（SHOWROOM/ふわっち）。新鮮でなければ上流を1回叩く。
 // 戻り値 null は「分からない」（呼び出し側でそのPFを結果から外す）。
-async function cachedShared(redis, cacheKey, fetchRaw, empty) {
+async function cachedShared(redis, platform, cacheKey, fetchRaw, empty) {
   let c;
   try {
     c = await redis.get(cacheKey);
@@ -204,6 +215,11 @@ async function cachedShared(redis, cacheKey, fetchRaw, empty) {
   if (hasRecord(c) && now - c.t < TTL * 1000) return c.raw;
 
   const raw = await fetchRaw();
+  await recordHealth(redis, platform, {
+    ok: raw != null,
+    failed: raw == null,
+    live: raw != null && Object.keys(raw).length > 0,
+  });
   if (raw == null) return hasRecord(c) ? null : empty;
   try {
     await redis.set(cacheKey, { raw, t: now }, { ex: HOLD });
@@ -211,6 +227,44 @@ async function cachedShared(redis, cacheKey, fetchRaw, empty) {
     warnRedis('set', e);
   }
   return raw;
+}
+
+// ---------------------------------------------------------------------------
+// 死活記録（/api/health が読む・朝のまとめメールに出る）
+// 2026-11 にツイキャスが2週間全件失敗していたのに誰も気付かなかった。拡張は失敗を
+// 「配信なし」と区別できないので、ユーザーにも見えない。だからサーバーで記録する。
+//   health:<pf> = { okAt, failAt, failDetail, liveAt, since }（ミリ秒）
+//   okAt   … 上流から1件以上の状態が取れた最後の時刻
+//   failAt … 1件以上が失敗した最後の時刻（failDetail はその理由）
+//   liveAt … 配信中のチャンネルを最後に見た時刻（エラーにならずに壊れる型＝常にオフラインを見抜く）
+//   since  … 記録を始めた時刻（直後の「配信中を見ていない」を誤検知しないため）
+// 書き込みはインスタンスごと・PFごと・種類ごとに HEALTH_EVERY に1回まで（Redisのコマンド数を抑える）。
+// ---------------------------------------------------------------------------
+
+const HEALTH_EVERY = 5 * 60 * 1000;
+const healthWrittenAt = {};
+
+async function recordHealth(redis, platform, { ok, failed, live }) {
+  const now = Date.now();
+  const h = {};
+  const due = (field) => {
+    const k = `${platform}:${field}`;
+    if (now - (healthWrittenAt[k] || 0) < HEALTH_EVERY) return false;
+    healthWrittenAt[k] = now;
+    return true;
+  };
+  if (ok && due('ok')) h.okAt = now;
+  if (failed && due('fail')) { h.failAt = now; h.failDetail = lastDetail[platform] || ''; }
+  if (live && due('live')) h.liveAt = now;
+  if (!Object.keys(h).length) return;
+  try {
+    const pipe = redis.pipeline();
+    pipe.hset(`health:${platform}`, h);
+    if (due('since')) pipe.hsetnx(`health:${platform}`, 'since', now);
+    await pipe.exec();
+  } catch (e) {
+    warnRedis('hset', e);
+  }
 }
 
 // ---------------------------------------------------------------------------
