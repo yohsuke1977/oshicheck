@@ -138,12 +138,26 @@ async function checkAllChannels() {
     return;
   }
 
-  for (const ch of updated) {
-    if (ch.isLive && !prev[ch.id]) await sendNotification(ch);
+  // 問い合わせを待つ間に設定画面で追加・削除されていることがある（Issue #20）。
+  // 最初に読んだ一覧をそのまま書き戻すとその操作が消えるので、書く直前に読み直し、
+  // その一覧を土台に配信状態の項目だけを id で突き合わせて上書きする。
+  // 間に削除されたものは書かず（通知もしない）、間に追加されたものはそのまま残す。
+  const byId = new Map(updated.map(ch => [ch.id, ch]));
+  const { channels: latest = [] } = await chrome.storage.local.get('channels');
+  const merged = latest.map(ch => {
+    const u = byId.get(ch.id);
+    if (!u) return ch;
+    const m = { ...ch };
+    for (const k of STATUS_FIELDS) if (k in u) m[k] = u[k];
+    return m;
+  });
+
+  for (const ch of merged) {
+    if (byId.has(ch.id) && ch.isLive && !prev[ch.id]) await sendNotification(ch);
   }
 
   // バッジでライブ中件数を表示
-  const liveCount = updated.filter(ch => ch.isLive).length;
+  const liveCount = merged.filter(ch => ch.isLive).length;
   if (liveCount > 0) {
     chrome.action.setBadgeText({ text: String(liveCount) });
     chrome.action.setBadgeBackgroundColor({ color: '#eb0400' });
@@ -151,8 +165,11 @@ async function checkAllChannels() {
     chrome.action.setBadgeText({ text: '' });
   }
 
-  await chrome.storage.local.set({ channels: updated, lastChecked: Date.now() });
+  await chrome.storage.local.set({ channels: merged, lastChecked: Date.now() });
 }
+
+// checkAllChannels が書き換える項目（配信状態と、サーバーが返す表示名・アイコン）
+const STATUS_FIELDS = ['isLive', 'liveVideoId', 'movieId', 'liveId', 'lastChecked', 'name', 'thumbnail'];
 
 async function sendNotification(channel) {
   sendEvent('live_notify', { platform: channel.platform });

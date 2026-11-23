@@ -201,20 +201,24 @@ document.getElementById('confirmBtn').addEventListener('click', async () => {
     liveVideoId: null,
     lastChecked: null
   };
-  channels.push(newChannel);
-
   // Firestore同期
   const user = await fbGetCurrentUser();
   if (user) await fsSaveChannel(user.uid, newChannel);
 
-  sendEvent('channel_add', { platform: pendingChannel.platform });
+  sendEvent('channel_add', { platform: newChannel.platform });
 
-  await chrome.storage.local.set({ channels });
+  // 上の通信を待つ間に、巡回（background.js）が配信状態を書いていることがある。
+  // 最初に読んだ一覧で書くとそれを古い状態に戻し、同じ配信の通知が次の巡回でもう一度鳴る（Issue #20）。
+  // だから書く直前に読み直し、その一覧に足す。
+  const { channels: latest = [] } = await chrome.storage.local.get('channels');
+  const dup = latest.some(ch => ch.platform === newChannel.platform && ch.channelId === newChannel.channelId);
+  if (!dup) latest.push(newChannel);
+  await chrome.storage.local.set({ channels: latest });
   pendingChannel = null;
   hidePreview();
   clearStatus();
   document.getElementById('channelInput').value = '';
-  renderChannelList(channels);
+  renderChannelList(latest);
 });
 
 // ── Channel list ──────────────────────────────────────────────────────────────
