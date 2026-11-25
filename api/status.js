@@ -561,9 +561,13 @@ async function fetchShowroomLiveSet() {
   }
 }
 
+// 登録IDに `?` `#` 以降が付いたまま保存されている人がいる（Issue #22・登録側は修正済み）。
+// 比べる前に捨てる。返すキーは拡張が突き合わせに使うので、元の文字列のまま。
+const stripQuery = (s) => String(s).replace(/[?#].*$/, '');
+
 function buildShowroom(liveKeys, roomUrlKeys) {
   const liveSet = new Set(liveKeys);
-  return Object.fromEntries(roomUrlKeys.map(k => [k, { isLive: liveSet.has(k) }]));
+  return Object.fromEntries(roomUrlKeys.map(k => [k, { isLive: liveSet.has(stripQuery(k).replace(/\/$/, '')) }]));
 }
 
 // ふわっち: 全ライブ一覧を1回取得し、user_path → {liveId,name,thumbnail} のマップを返す。失敗は null。
@@ -601,7 +605,7 @@ async function fetchWhowatchLiveMap() {
 function buildWhowatch(liveMap, userPaths) {
   // URLが混入している場合に備えてパスだけ抽出
   const cleanPaths = userPaths.map(p =>
-    p.replace(/^https?:\/\/(?:www\.)?whowatch\.tv\/(?:user|profile)\//, '').replace(/\/$/, '')
+    stripQuery(p).replace(/^https?:\/\/(?:www\.)?whowatch\.tv\/(?:user|profile)\//, '').replace(/\/$/, '')
   );
   return Object.fromEntries(userPaths.map((p, i) => {
     const info = liveMap[cleanPaths[i]];

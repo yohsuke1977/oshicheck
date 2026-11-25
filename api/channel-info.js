@@ -10,6 +10,11 @@
 let twitchTokenCache = null;
 let kickTokenCache = null;
 
+// URLの `?` `#` 以降（共有リンクの utm_source や #chat など）を捨てる。
+// 捨てないと SHOWROOM / ふわっちでは `abc?x=1` がそのまま登録IDになり、
+// 配信中の判定（完全一致）に永久に一致しない＝エラーにならずに通知が来なくなる（Issue #22）。
+const stripQuery = (s) => String(s).trim().replace(/[?#].*$/, '');
+
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'x-oshi-key');
@@ -72,7 +77,7 @@ async function lookupYouTube(input) {
 }
 
 async function lookupTwitch(input) {
-  const login = input.replace(/^https?:\/\/(?:www\.)?twitch\.tv\//, '').replace(/\/$/, '');
+  const login = stripQuery(input).replace(/^https?:\/\/(?:www\.)?twitch\.tv\//, '').replace(/\/$/, '');
   const token = await getTwitchToken();
 
   const res = await fetch(`https://api.twitch.tv/helix/users?login=${encodeURIComponent(login)}`, {
@@ -94,7 +99,7 @@ async function lookupTwitch(input) {
 }
 
 async function lookupShowroom(input) {
-  const key = input
+  const key = stripQuery(input)
     .replace(/^https?:\/\/(?:www\.)?showroom-live\.com\/(?:r\/)?/, '')
     .replace(/\/$/, '');
 
@@ -149,7 +154,7 @@ async function lookupWhowatch(input) {
   }
 
   // /user/xxx または /profile/xxx
-  const userPath = input
+  const userPath = stripQuery(input)
     .replace(/^https?:\/\/(?:www\.)?whowatch\.tv\/(?:user|profile)\//, '')
     .replace(/\/$/, '');
 
@@ -346,7 +351,7 @@ function decodeHtmlEntities(s) {
 }
 
 async function lookupTwitcasting(input) {
-  const userId = input.replace(/^https?:\/\/(?:www\.)?twitcasting\.tv\//, '').replace(/\/$/, '');
+  const userId = stripQuery(input).replace(/^https?:\/\/(?:www\.)?twitcasting\.tv\//, '').replace(/\/$/, '');
   const auth = Buffer.from(
     `${process.env.TWITCASTING_CLIENT_ID}:${process.env.TWITCASTING_CLIENT_SECRET}`
   ).toString('base64');
