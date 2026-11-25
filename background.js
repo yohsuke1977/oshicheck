@@ -43,12 +43,27 @@ async function isPollSkippable() {
   return false;
 }
 
-chrome.notifications.onButtonClicked.addListener(async (notifId, btnIdx) => {
-  if (btnIdx !== 0) return;
+// 通知から配信ページを開く。本体を押しても「視聴する」ボタンを押しても同じ（Issue #21）。
+// 以前はボタンにしか反応しなかった。Mac ではボタンが最初は隠れていることが多く、本体を押す人のほうが多い。
+// 計測はイベント名で本体/ボタンを分ける（プライバシーポリシーに書いた送信項目＝イベント名と
+// プラットフォーム名の範囲に収めるため、別の項目は足さない）。表示数は live_notify。
+async function openFromNotification(notifId, via) {
+  if (!notifId.startsWith('live-')) return;
   const { channels = [] } = await chrome.storage.local.get('channels');
   const channelId = notifId.replace(/^live-/, '').replace(/-\d+$/, '');
   const channel = channels.find(ch => ch.id === channelId);
-  if (channel) chrome.tabs.create({ url: getStreamUrl(channel) });
+  const url = channel && getStreamUrl(channel);
+  if (url) {
+    chrome.tabs.create({ url });
+    sendEvent(`notify_click_${via}`, { platform: channel.platform });
+  }
+  chrome.notifications.clear(notifId);
+}
+
+chrome.notifications.onClicked.addListener((notifId) => openFromNotification(notifId, 'body'));
+
+chrome.notifications.onButtonClicked.addListener((notifId, btnIdx) => {
+  if (btnIdx === 0) openFromNotification(notifId, 'button');
 });
 
 async function checkAllChannels() {
