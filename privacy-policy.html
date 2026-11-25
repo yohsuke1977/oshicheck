@@ -35,7 +35,7 @@
 <body>
   <div class="container">
     <h1>プライバシーポリシー</h1>
-    <p class="meta">推し通知 / Oshi Alert ／ 最終更新: 2026年8月4日 ／ <a href="https://oshialert.com/privacy/en">English version</a></p>
+    <p class="meta">推し通知 / Oshi Alert ／ 最終更新: 2026年11月26日 ／ <a href="https://oshialert.com/privacy/en">English version</a></p>
 
     <div class="card">
       <h2>1. 事業者情報</h2>
@@ -64,7 +64,7 @@
       <ul>
         <li><strong>お使いのブラウザ内</strong>（chrome.storage.local）：登録チャンネル、プラン情報、ログイン状態、匿名の利用イベント用ID。<br>保存期間：拡張機能をアンインストールするまで。アンインストールにより削除されます。</li>
         <li><strong>Google Cloud（Firebase Authentication / Cloud Firestore）</strong>：ログインした場合のメールアドレス、登録チャンネル、プラン情報。<br>保存期間：アカウントを削除するまで。削除のご依頼から7日以内に消去します。</li>
-        <li><strong>当方のAPIサーバー（Vercel）およびキャッシュ（Upstash Redis）</strong>：配信状態の一時キャッシュ。<br>保存期間：最大180秒で自動的に消去されます。キャッシュはチャンネル単位で保持し、どの利用者が誰を追跡しているかという情報は保存しません。</li>
+        <li><strong>当方のAPIサーバー（Vercel）およびキャッシュ（Upstash Redis）</strong>：配信状態の一時キャッシュ。<br>保存期間：最後に取得してから最大30分で自動的に消去されます。キャッシュはチャンネル単位で保持し、どの利用者が誰を追跡しているかという情報は保存しません。このほか、配信サイトごとの稼働記録（取得に成功・失敗した時刻と失敗の理由、配信中を最後に確認した時刻）を、不具合に気付くために保持します。利用者やチャンネルとは結び付きません。</li>
       </ul>
       <p>これらのサービスの性質上、データは日本国外（米国等）のサーバーに保存・処理される場合があります。</p>
     </div>
