@@ -100,18 +100,45 @@ async function handleAuth(isSignUp) {
   }
 }
 
+// ログイン時に手元とクラウドの一覧を足し合わせる（Issue #23）。
+// 以前はクラウドに1件でもあると手元を丸ごと置き換えていたので、ログインしていない間に
+// このPCで足したチャンネルが黙って消え、配信状態も全部「配信なし」に戻って二重通知が鳴った。
+// - 同じチャンネル（サイト＋チャンネルID）は手元のものを残す。配信状態を保つため。
+//   id だけはクラウドに合わせる。違うままだと、後でこのPCで消してもクラウドのものが消えない
+// - クラウドにしか無いものは足す。手元にしか無いものはクラウドにも送る
+// - ログアウト中に手元で消したものはクラウドから復活する。消える事故より害が小さいのでこちらを取る
+// - 無料プランで5件を超えても全部残す（追加だけ止まる。Pro が切れたときと同じ扱い）
+// - クラウドが読めなかったときは何もしない（手元をそのまま使う）
 async function syncFromFirestore(uid) {
   const remoteChannels = await fsGetChannels(uid);
-  if (!remoteChannels.length) {
-    // ローカルのチャンネルをFirestoreにアップロード
-    const { channels = [] } = await chrome.storage.local.get('channels');
-    for (const ch of channels) await fsSaveChannel(uid, ch);
-    return;
+  if (!remoteChannels) return;
+
+  const keyOf = (ch) => `${ch.platform}:${ch.channelId}`;
+  const remoteByKey = new Map();
+  for (const ch of remoteChannels) if (!remoteByKey.has(keyOf(ch))) remoteByKey.set(keyOf(ch), ch);
+
+  // 上の通信を待つ間に巡回が配信状態を書いていることがあるので、書く直前に読む（#20 と同じ）
+  const { channels: local = [] } = await chrome.storage.local.get('channels');
+  const localKeys = new Set();
+  const merged = [];
+  const toUpload = [];
+  for (const ch of local) {
+    const k = keyOf(ch);
+    if (localKeys.has(k)) continue;
+    localKeys.add(k);
+    const remote = remoteByKey.get(k);
+    if (remote) {
+      merged.push({ ...ch, id: remote.id });
+    } else {
+      merged.push(ch);
+      toUpload.push(ch);
+    }
   }
-  // Firestoreのデータをローカルに反映
-  await chrome.storage.local.set({ channels: remoteChannels });
-  const { channels = [] } = await chrome.storage.local.get('channels');
-  renderChannelList(channels);
+  for (const [k, ch] of remoteByKey) if (!localKeys.has(k)) merged.push(ch);
+
+  await chrome.storage.local.set({ channels: merged });
+  renderChannelList(merged);
+  for (const ch of toUpload) await fsSaveChannel(uid, ch);
 }
 
 document.getElementById('signInBtn').addEventListener('click', () => handleAuth(false));

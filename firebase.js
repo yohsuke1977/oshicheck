@@ -68,14 +68,22 @@ async function fbGetCurrentUser() {
 
 // ── Firestore ─────────────────────────────────────────────────────────────────
 
+// 読めなかったとき（トークン・通信・権限の失敗）は null を返す。
+// 空の配列は「クラウドに1件も無い」の意味だけに使う（Issue #23）。
 async function fsGetChannels(uid) {
   const idToken = await fbGetIdToken();
-  if (!idToken) return [];
+  if (!idToken) return null;
 
-  const res = await fetch(`${FS_BASE()}/users/${uid}/channels`, {
-    headers: { 'Authorization': `Bearer ${idToken}` }
-  });
-  const data = await res.json();
+  let data;
+  try {
+    const res = await fetch(`${FS_BASE()}/users/${uid}/channels`, {
+      headers: { 'Authorization': `Bearer ${idToken}` }
+    });
+    if (!res.ok) return null;
+    data = await res.json();
+  } catch (e) {
+    return null;
+  }
   if (!data.documents) return [];
 
   return data.documents.map(_docToChannel);
